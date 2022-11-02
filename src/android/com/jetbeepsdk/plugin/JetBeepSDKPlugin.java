@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.jetbeep.JetBeepRegistrationType;
 import com.jetbeep.JetBeepSDK;
@@ -17,7 +16,6 @@ import com.jetbeep.connection.locker.Lockers;
 import com.jetbeep.connection.locker.Token;
 import com.jetbeep.connection.locker.TokenResult;
 import com.jetbeep.locations.LocationCallbacks;
-import com.jetbeep.locations.Locations;
 import com.jetbeep.model.entities.Merchant;
 import com.jetbeep.model.entities.Shop;
 
@@ -42,6 +40,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     private static final String TAG = "JetBeepSDKPlugin";
     private Lockers lockers = null;
     private CallbackContext devicesCallback = null;
+    private CallbackContext jsLocationsCallback = null;
 
     private enum DeviceStatus {
         DeviceDetected,
@@ -49,15 +48,24 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         DeviceLost,
     }
 
-    private DeviceStatusCallback lockersListener = new DeviceStatusCallback() {
+    private enum LocationsEvents {
+        onShopEntered,
+        onShopExit,
+        onMerchantEntered,
+        onMerchantExit,
+    }
+
+    private final DeviceStatusCallback lockersListener = new DeviceStatusCallback() {
 
         @Override
         public void onLockerDeviceStatusChanged(List<LockerDevice> list) {
             log("onLockerDeviceStatusChanged, size = " + list.size());
             if (devicesCallback != null) {
                 for (LockerDevice d : list) {
-                    devicesCallback.sendPluginResult(new PluginResult(PluginResult.Status.OK,
-                            getResultAsString(d, DeviceStatus.DeviceStateChanged)));
+                    PluginResult result = new PluginResult(PluginResult.Status.OK,
+                            getResultAsString(d, DeviceStatus.DeviceStateChanged));
+                    result.setKeepCallback(true);
+                    devicesCallback.sendPluginResult(result);
                 }
             }
         }
@@ -66,8 +74,10 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         public void onLockerDeviceLost(LockerDevice lockerDevice) {
             log("onLockerDeviceLost = " + lockerDevice);
             if (devicesCallback != null) {
-                devicesCallback.sendPluginResult(new PluginResult(PluginResult.Status.OK,
-                        getResultAsString(lockerDevice, DeviceStatus.DeviceLost)));
+                PluginResult result = new PluginResult(PluginResult.Status.OK,
+                        getResultAsString(lockerDevice, DeviceStatus.DeviceLost));
+                result.setKeepCallback(true);
+                devicesCallback.sendPluginResult(result);
             }
         }
 
@@ -75,8 +85,10 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         public void onLockerDeviceDetected(LockerDevice lockerDevice) {
             log("onLockerDeviceDetected = " + lockerDevice);
             if (devicesCallback != null) {
-                devicesCallback.sendPluginResult(new PluginResult(PluginResult.Status.OK,
-                        getResultAsString(lockerDevice, DeviceStatus.DeviceDetected)));
+                PluginResult result = new PluginResult(PluginResult.Status.OK,
+                        getResultAsString(lockerDevice, DeviceStatus.DeviceDetected));
+                result.setKeepCallback(true);
+                devicesCallback.sendPluginResult(result);
             }
         }
 
@@ -85,7 +97,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         {
             "deviceId": String,
             "deviceName": String,
-            "isConnactable": String, //"true", "false"
+            "isConnectable": String, //"true", "false"
             "status": String, // "DeviceDetected", "DeviceStateChanged", "DeviceLost"
         }
         */
@@ -94,7 +106,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             try {
                 result.put("deviceId", String.valueOf(lockerDevice.getDevice().getDeviceId()));
                 result.put("deviceName", lockerDevice.getDevice().getShopName());
-                result.put("isConnactable",
+                result.put("isConnectable",
                         String.valueOf(lockerDevice.getDevice().isConnectable()));
                 result.put("status", status.toString());
             } catch (JSONException e) {
@@ -104,6 +116,88 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         }
 
 
+    };
+
+    private final LocationCallbacks locationCallbacks = new LocationCallbacks() {
+
+        @Override
+        public void onShopExit(@NonNull Shop shop) {
+            if (jsLocationsCallback != null) {
+                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK,
+                        onEvent(LocationsEvents.onShopExit, shop));
+                pluginResult.setKeepCallback(true);
+                jsLocationsCallback.sendPluginResult(pluginResult);
+            }
+        }
+
+        @Override
+        public void onShopEntered(@NonNull Shop shop) {
+            if (jsLocationsCallback != null) {
+                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK,
+                        onEvent(LocationsEvents.onShopEntered, shop));
+                pluginResult.setKeepCallback(true);
+                jsLocationsCallback.sendPluginResult(pluginResult);
+            }
+        }
+
+        @Override
+        public void onMerchantExit(@NonNull Merchant merchant) {
+            /*if (jsLocationsCallback != null) {
+                jsLocationsCallback.sendPluginResult(new PluginResult(PluginResult.Status.OK,
+                        onEvent(LocationsEvents.onMerchantExit, merchant)));
+            }*/
+        }
+
+        @Override
+        public void onMerchantEntered(@NonNull Merchant merchant, @NonNull Shop shop) {
+            /*if (jsLocationsCallback != null) {
+                jsLocationsCallback.sendPluginResult(new PluginResult(PluginResult.Status.OK,
+                        onEvent(LocationsEvents.onMerchantEntered, merchant)));
+            }*/
+        }
+
+        /* Example of Shop object:
+            {
+                "event" : String // onShopEntered, onShopExit, onMerchantEntered, onMerchantExit,
+                "shop" : {
+                    "shopId" : int,
+                    "shopName" : String
+                }
+            }
+        */
+        private String onEvent(LocationsEvents events, Object obj) {
+            JSONObject result = new JSONObject();
+            try {
+                result.put("event", events.toString());
+                if (obj instanceof Shop) {
+                    result.put("shop", shopToJson((Shop) obj));
+                } else if (obj instanceof Merchant) {
+                    result.put("merchant", merchantToJson((Merchant) obj));
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return result.toString();
+        }
+
+        /* Merchant object
+            {
+                "merchantId" : int,
+                "merchantName" : String,
+                "merchantImage" : String
+            }
+        */
+        private JSONObject merchantToJson(Merchant merchant) {
+            JSONObject result = new JSONObject();
+            try {
+                result.put("merchantId", merchant.getId());
+                result.put("merchantName", merchant.getName());
+                result.put("merchantImage", merchant.getImage());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return result;
+        }
     };
 
     @Override
@@ -138,13 +232,90 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                 enableBeeper(callbackContext);
                 return true;
             }
+            case "subscribeToLocations": {
+                subscribeToLocations(callbackContext);
+                return true;
+            }
+            case "unsubscribeFromLocations": {
+                unsubscribeFromLocations(callbackContext);
+                return true;
+            }
+            case "getEnteredShops": {
+                getEnteredShops(callbackContext);
+                return true;
+            }
         }
         return false;
+    }
+
+    private void subscribeToLocations(CallbackContext callbackContext) {
+        log("subscribeToLocations");
+
+        JetBeepSDK.INSTANCE.getLocations().subscribe(locationCallbacks);
+
+        jsLocationsCallback = callbackContext;
+
+        startForegroundScanner();
+
+        /*PluginResult result = new PluginResult(PluginResult.Status.OK);
+        result.setKeepCallback(true);
+        callbackContext.sendPluginResult(result);*/
+    }
+
+    private void unsubscribeFromLocations(CallbackContext callbackContext) {
+        log("unsubscribeFromLocations");
+        JetBeepSDK.INSTANCE.getLocations().unsubscribe(locationCallbacks);
+
+        jsLocationsCallback = null;
+
+        stopForegroundScanner();
+
+        /*PluginResult result = new PluginResult(PluginResult.Status.OK);
+        result.setKeepCallback(false);
+        callbackContext.sendPluginResult(result);*/
+        callbackContext.success();
+    }
+
+    /**
+     * returns: json array of Shops
+     *  [{
+     *      "shopId" : int,
+     *      "shopName" : String
+     *  }]
+     */
+    private void getEnteredShops(CallbackContext callbackContext) {
+        runInUiThread(() -> {
+            try {
+                List<Shop> shops = JetBeepSDK.INSTANCE.getLocations().getEnteredShops();
+                JSONArray jsonShopList = new JSONArray();
+                for (Shop s : shops) {
+                    jsonShopList.put(shopToJson(s));
+                }
+                callbackContext.success(jsonShopList);
+            } catch (Exception e) {
+                callbackContext.error(e.getMessage());
+            }
+        });
+    }
+
+    private JSONObject shopToJson(Shop shop) {
+        JSONObject result = new JSONObject();
+        try {
+            result.put("shopId", shop.getId());
+            result.put("shopName", shop.getName());
+//                result.put("merchantId", shop.getMerchantId());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
     private void isPermissionGranted(CallbackContext callbackContext) {
         boolean bt = isBluetoothPermissionsGranted(cordova.getContext());
         boolean location = isLocationPermissionsGranted(cordova.getContext());
+
+        log("isPermissionGranted, bt = " + bt + ", location = " + location);
+
         JSONObject result = new JSONObject();
         try {
             result.put("isBtReady", bt);
@@ -163,8 +334,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void enableBeeper(CallbackContext callbackContext) {
+        log("enableBeeper");
         runInUiThread(() -> {
-            log("enableBeeper");
             JetBeepSDK sdk = JetBeepSDK.INSTANCE;
             if (isBluetoothPermissionsGranted(cordova.getContext())
                 /*&& isLocationPermissionsGranted(cordova.getContext())*/) {
@@ -174,12 +345,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                             sdk.enableBackground();
                         }
 
-                        BleScanner scanner = JetBeepSDK.INSTANCE.getBleScanner();
-                        if (!scanner.isForegroundScannerStarted()) {
-                            scanner.startForegroundScanner();
-                        }
+                        //startForegroundScanner();
 
-                        Toast.makeText(webView.getContext(), "Beeper enabled", Toast.LENGTH_LONG).show();
                         lockers = sdk.getConnections().getLockers();
                         callbackContext.success();
                     } catch (Exception e) {
@@ -207,18 +374,16 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
                 //initInUi(serviceUUID, appName, appToken, callbackContext);
                 runInUiThread(() -> {
-                    Log.d(TAG,
-                            "java, init sdk: appName = " + appName + ", appToken = " + appToken + ", " +
-                                    "serviceUUID = " + serviceUUID + "thread = " + Thread.currentThread());
+                    log("java, init sdk: appName = " + appName + ", appToken = " + appToken + ", " +
+                            "serviceUUID = " + serviceUUID);
 
                     JetBeepSDK sdk = JetBeepSDK.INSTANCE;
+
                     sdk.init((Application) webView.getContext().getApplicationContext(),
                             serviceUUID, appName, appToken, JetBeepRegistrationType.ANONYMOUS,
                             false);
                     sdk.getRepository().trySync();
-                    //lockers = JetBeepSDK.INSTANCE.getConnections().getLockers();
-                    Toast.makeText(webView.getContext(), "Sdk was initialized",
-                            Toast.LENGTH_LONG).show();
+
                     callbackContext.success("SDK initialized successfully");
                     log("Sdk was initialized");
                 });
@@ -232,36 +397,14 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         }
     }
 
-    private LocationCallbacks locationCallbacks = new LocationCallbacks() {
-        @Override
-        public void onMerchantEntered(@NonNull Merchant merchant, @NonNull Shop shop) {
-            log("onMerchantEntered " + shop.getName());
-        }
-
-        @Override
-        public void onMerchantExit(@NonNull Merchant merchant) {
-            log("onMerchantExit " + merchant.getName());
-        }
-
-        @Override
-        public void onShopEntered(@NonNull Shop shop) {
-            log("onShopEntered " + shop.getName());
-        }
-
-        @Override
-        public void onShopExit(@NonNull Shop shop) {
-            log("onShopExit " + shop.getName());
-        }
-    };
-
     private void searchDevices(String msg, CallbackContext callbackContext) {
         if (msg == null || msg.length() == 0) {
             callbackContext.error("Empty message!");
             log("searchDevices error: Empty message!");
         } else {
             runInUiThread(() -> {
-                Locations loc = JetBeepSDK.INSTANCE.getLocations();
-                loc.subscribe(locationCallbacks);
+//                Locations loc = JetBeepSDK.INSTANCE.getLocations();
+//                loc.subscribe(locationCallbacks);
 
                 try {
                     JSONArray tokensForSearch = new JSONArray(msg);
@@ -275,16 +418,12 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                         }
                         if (!tokens.isEmpty()) {
                             if (lockers != null) {
-
                                 lockers.subscribe(lockersListener);
+
+                                startForegroundScanner();
+
                                 lockers.startSearch(tokens);
                                 devicesCallback = callbackContext;
-                                Toast.makeText(webView.getContext(), "searchDevices " + msg,
-                                        Toast.LENGTH_LONG).show();
-                                //callbackContext.success(msg);
-                                PluginResult result = new PluginResult(PluginResult.Status.OK);
-                                result.setKeepCallback(true);
-                                devicesCallback.sendPluginResult(result);
                             } else {
                                 callbackContext.error("Lockers is null!");
                             }
@@ -308,22 +447,20 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                 lockers.stopSearch();
                 lockers.unsubscribe(lockersListener);
             }
-            // TODO remove this
-            Locations loc = JetBeepSDK.INSTANCE.getLocations();
-            loc.unsubscribe(locationCallbacks);
-            //
-            cordova.getActivity().runOnUiThread(() -> {
-                JetBeepSDK.INSTANCE.getBleScanner().stopForegroundScanner();
-            });
+
             // TODO need to check this
             if (devicesCallback != null) {
-                PluginResult result = new PluginResult(PluginResult.Status.OK);
+                // TODO status NO_RESULT
+                PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
                 result.setKeepCallback(false);
                 devicesCallback.sendPluginResult(result);
             }
             // TODO end
+
             devicesCallback = null;
-            Toast.makeText(webView.getContext(), "stopSearching " + msg, Toast.LENGTH_LONG).show();
+
+            stopForegroundScanner();
+
             callbackContext.success(msg);
         });
     }
@@ -336,6 +473,9 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                 try {
                     if (lockers != null) {
                         Token token = Token.Companion.createToken(msg);
+
+                        log("###waitong for apply...");
+
                         lockers.apply(token, new Continuation<TokenResult>() {
                             @NonNull
                             @Override
@@ -346,24 +486,31 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                             @Override
                             public void resumeWith(@NonNull Object o) {
                                 log("###Apply result: " + o);
-//                        Toast.makeText(webView.getContext(), "applyToken " + msg, Toast
-//                        .LENGTH_LONG).show();
-//                        callbackContext.success(msg);
+                                callbackContext.success();
                             }
                         });
-                        log("###waitong for apply...");
                     }
-                    runInUiThread(() -> {
-                        Toast.makeText(webView.getContext(), "applyToken " + msg,
-                                Toast.LENGTH_LONG).show();
-                    });
-                    callbackContext.success(msg);
                 } catch (Exception e) {
                     e.printStackTrace();
                     log("Error to apply: " + e);
                     callbackContext.error(e.toString());
                 }
             }).start();
+        }
+    }
+
+    private void startForegroundScanner() {
+        runInUiThread(() -> {
+            BleScanner scanner = JetBeepSDK.INSTANCE.getBleScanner();
+            if (!scanner.isForegroundScannerStarted()) {
+                scanner.startForegroundScanner();
+            }
+        });
+    }
+
+    private void stopForegroundScanner() {
+        if (devicesCallback == null && jsLocationsCallback == null) {
+            runInUiThread(() -> JetBeepSDK.INSTANCE.getBleScanner().stopForegroundScanner());
         }
     }
 

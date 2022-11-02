@@ -230,7 +230,7 @@ private extension LockerDevice {
         let dictionary =
         ["deviceId" : device.deviceId.description,
          "deviceName": device.shop.name,
-         "isConnactable": device.state.contains(.connectable) ? "true": "false",
+         "isConnectable": device.state.contains(.connectable) ? "true": "false",
          "status": status.description]
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: dictionary, options: []) else {
