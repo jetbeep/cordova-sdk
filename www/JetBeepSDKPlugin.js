@@ -39,3 +39,7 @@ exports.unsubscribeFromLocations = function(arg0, success, error) {
 exports.getEnteredShops = function(arg0, success, error) {
     exec(success, error, 'JetBeepSDKPlugin', 'getEnteredShops', [arg0]);
 };
+
+exports.getNearbyDevices = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'getNearbyDevices', [arg0]);
+};

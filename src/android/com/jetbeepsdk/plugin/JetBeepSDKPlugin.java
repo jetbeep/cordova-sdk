@@ -46,6 +46,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         DeviceDetected,
         DeviceStateChanged,
         DeviceLost,
+        None
     }
 
     private enum LocationsEvents {
@@ -59,11 +60,11 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
         @Override
         public void onLockerDeviceStatusChanged(List<LockerDevice> list) {
-            log("onLockerDeviceStatusChanged, size = " + list.size());
+            log("onLockerDeviceStatusChanged = " + list);
             if (devicesCallback != null) {
                 for (LockerDevice d : list) {
                     PluginResult result = new PluginResult(PluginResult.Status.OK,
-                            getResultAsString(d, DeviceStatus.DeviceStateChanged));
+                            lockerDeviceToJson(d, DeviceStatus.DeviceStateChanged));
                     result.setKeepCallback(true);
                     devicesCallback.sendPluginResult(result);
                 }
@@ -75,7 +76,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             log("onLockerDeviceLost = " + lockerDevice);
             if (devicesCallback != null) {
                 PluginResult result = new PluginResult(PluginResult.Status.OK,
-                        getResultAsString(lockerDevice, DeviceStatus.DeviceLost));
+                        lockerDeviceToJson(lockerDevice, DeviceStatus.DeviceLost));
                 result.setKeepCallback(true);
                 devicesCallback.sendPluginResult(result);
             }
@@ -86,35 +87,11 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             log("onLockerDeviceDetected = " + lockerDevice);
             if (devicesCallback != null) {
                 PluginResult result = new PluginResult(PluginResult.Status.OK,
-                        getResultAsString(lockerDevice, DeviceStatus.DeviceDetected));
+                        lockerDeviceToJson(lockerDevice, DeviceStatus.DeviceDetected));
                 result.setKeepCallback(true);
                 devicesCallback.sendPluginResult(result);
             }
         }
-
-        /*
-        Response: async callback with device status json:
-        {
-            "deviceId": String,
-            "deviceName": String,
-            "isConnectable": String, //"true", "false"
-            "status": String, // "DeviceDetected", "DeviceStateChanged", "DeviceLost"
-        }
-        */
-        private JSONObject getResultAsString(LockerDevice lockerDevice, DeviceStatus status) {
-            JSONObject result = new JSONObject();
-            try {
-                result.put("deviceId", String.valueOf(lockerDevice.getDevice().getDeviceId()));
-                result.put("deviceName", lockerDevice.getDevice().getShopName());
-                result.put("isConnectable",
-                        String.valueOf(lockerDevice.getDevice().isConnectable()));
-                result.put("status", status.toString());
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            return result;
-        }
-
 
     };
 
@@ -122,6 +99,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
         @Override
         public void onShopExit(@NonNull Shop shop) {
+            log("onShopExit: " + shop);
             if (jsLocationsCallback != null) {
                 PluginResult pluginResult = new PluginResult(PluginResult.Status.OK,
                         onEvent(LocationsEvents.onShopExit, shop));
@@ -132,6 +110,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
         @Override
         public void onShopEntered(@NonNull Shop shop) {
+            log("onShopEntered " + shop);
             if (jsLocationsCallback != null) {
                 PluginResult pluginResult = new PluginResult(PluginResult.Status.OK,
                         onEvent(LocationsEvents.onShopEntered, shop));
@@ -244,6 +223,10 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                 getEnteredShops(callbackContext);
                 return true;
             }
+            case "getNearbyDevices": {
+                getNearbyDevices(callbackContext);
+                return true;
+            }
         }
         return false;
     }
@@ -278,10 +261,10 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
     /**
      * returns: json array of Shops
-     *  [{
-     *      "shopId" : int,
-     *      "shopName" : String
-     *  }]
+     * [{
+     * "shopId" : int,
+     * "shopName" : String
+     * }]
      */
     private void getEnteredShops(CallbackContext callbackContext) {
         runInUiThread(() -> {
@@ -293,9 +276,53 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                 }
                 callbackContext.success(jsonShopList);
             } catch (Exception e) {
+                e.printStackTrace();
                 callbackContext.error(e.getMessage());
             }
         });
+    }
+
+    private void getNearbyDevices(CallbackContext callbackContext) {
+        runInUiThread(() -> {
+            try {
+                List<LockerDevice> devices =
+                        JetBeepSDK.INSTANCE.getConnections().getLockers().getVisibleDevices();
+                log("NearbyDevices: " + devices);
+                JSONArray result = new JSONArray();
+                for (LockerDevice device : devices) {
+                    result.put(lockerDeviceToJson(device, DeviceStatus.None));
+                }
+                callbackContext.success(result);
+            } catch (Exception e) {
+                e.printStackTrace();
+                callbackContext.error(e.getMessage());
+            }
+        });
+    }
+
+    /*
+        Response: async callback with device status json:
+        {
+            "deviceId": String,
+            "deviceName": String,
+            "isConnectable": String, //"true", "false"
+            "status": String, // "DeviceDetected", "DeviceStateChanged", "DeviceLost"
+        }
+        */
+    private JSONObject lockerDeviceToJson(LockerDevice lockerDevice, DeviceStatus status) {
+        JSONObject result = new JSONObject();
+        try {
+            result.put("deviceId", String.valueOf(lockerDevice.getDevice().getDeviceId()));
+            result.put("deviceName", lockerDevice.getDevice().getShopName());
+            result.put("isConnectable",
+                    String.valueOf(lockerDevice.getDevice().isConnectable()));
+            if (status != DeviceStatus.None) {
+                result.put("status", status.toString());
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
     private JSONObject shopToJson(Shop shop) {
@@ -337,6 +364,10 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         log("enableBeeper");
         runInUiThread(() -> {
             JetBeepSDK sdk = JetBeepSDK.INSTANCE;
+
+            /*sdk.getRepository().getShops().getAllAsLiveData().observeForever(shops -> {
+                log("$$$SHOPS: " + shops);
+            });*/
             if (isBluetoothPermissionsGranted(cordova.getContext())
                 /*&& isLocationPermissionsGranted(cordova.getContext())*/) {
                 if (sdk.isInitialized()) {
@@ -403,36 +434,37 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             log("searchDevices error: Empty message!");
         } else {
             runInUiThread(() -> {
-//                Locations loc = JetBeepSDK.INSTANCE.getLocations();
-//                loc.subscribe(locationCallbacks);
-
                 try {
                     JSONArray tokensForSearch = new JSONArray(msg);
+                    List<Token> tokens = null;
                     if (tokensForSearch.length() > 0) {
-                        List<Token> tokens = new ArrayList<>();
                         for (int i = 0; i < tokensForSearch.length(); i++) {
                             String tokenString = (String) tokensForSearch.get(i);
+                            if (tokenString.isEmpty()) {
+                                continue;
+                            }
                             log("create token from: " + tokenString);
                             Token token = Token.Companion.createToken(tokenString);
+                            if (tokens == null) {
+                                tokens = new ArrayList<>();
+                            }
                             tokens.add(token);
                         }
-                        if (!tokens.isEmpty()) {
-                            if (lockers != null) {
-                                lockers.subscribe(lockersListener);
-
-                                startForegroundScanner();
-
-                                lockers.startSearch(tokens);
-                                devicesCallback = callbackContext;
-                            } else {
-                                callbackContext.error("Lockers is null!");
-                            }
-                        } else {
-                            callbackContext.error("Tokens is empty");
-                        }
-                    } else {
-                        callbackContext.error("Failed to parse json");
                     }
+
+                    if (lockers == null) {
+                        callbackContext.error("Lockers is null!");
+                        return;
+                    }
+
+                    lockers.subscribe(lockersListener);
+
+                    startForegroundScanner();
+
+                    devicesCallback = callbackContext;
+                    lockers.startSearch(tokens);
+                    log("search started");
+
                 } catch (JSONException e) {
                     callbackContext.error(e.getMessage());
                     e.printStackTrace();
