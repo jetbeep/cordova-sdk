@@ -354,7 +354,7 @@ extension Array where Element == [String: Any] {
 
     @objc(unsubscribeFromLocations:)
     func unsubscribeFromLocations(command: CDVInvokedUrlCommand) {
-        var pluginResult = CDVPluginResult(
+        let pluginResult = CDVPluginResult(
             status: .ok
         )
         Log.d("Unsubscribe from shop enter/exit events listiner")
@@ -375,7 +375,7 @@ extension Array where Element == [String: Any] {
         }.jsonString
 
 
-        var pluginResult = CDVPluginResult(
+        let pluginResult = CDVPluginResult(
             status: .ok,
             messageAs: json
         )
@@ -397,7 +397,7 @@ extension Array where Element == [String: Any] {
                     "isConnectable": isConnectable]
         }
 
-        var pluginResult = CDVPluginResult(
+        let pluginResult = CDVPluginResult(
             status: .ok,
             messageAs: deviceArray.jsonString
         )
