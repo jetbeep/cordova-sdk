@@ -1,4 +1,5 @@
 import JetBeepFramework
+
 private extension VendingConnectionState {
     var description: String {
         switch self {
@@ -203,8 +204,8 @@ extension Array where Element == [String: Any] {
         Log.d("Search devices values: \(command.arguments[0])")
 
         guard let hexes = command.arguments[0] as? [String],
-              let tokens = tokensList(with: hexes),
-                !tokens.isEmpty else {
+              let tokens = tokensList(with: hexes)
+                else {
             pluginResult = CDVPluginResult(
                 status: .error,
                 messageAs: "Input search devices parameters are wrong!"
@@ -232,7 +233,7 @@ extension Array where Element == [String: Any] {
                     status: .ok,
                     messageAs: device.json(for: .deviceStateChanged)
                 )
-            case .onLockerDeviceLosted(let device):
+            case .onLockerDeviceLost(let device):
                 Log.i("onLockerDeviceLost \(device)")
                 pluginResult = CDVPluginResult(
                     status: .ok,
@@ -420,4 +421,3 @@ extension Array where Element == [String: Any] {
     }
 
 }
-
