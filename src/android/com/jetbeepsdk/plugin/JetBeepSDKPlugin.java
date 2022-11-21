@@ -63,10 +63,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             log("onLockerDeviceStatusChanged = " + list);
             if (devicesCallback != null) {
                 for (LockerDevice d : list) {
-                    PluginResult result = new PluginResult(PluginResult.Status.OK,
-                            lockerDeviceToJson(d, DeviceStatus.DeviceStateChanged));
-                    result.setKeepCallback(true);
-                    devicesCallback.sendPluginResult(result);
+                    sendLockerDeviceEvent(d, DeviceStatus.DeviceStateChanged);
                 }
             }
         }
@@ -74,23 +71,13 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         @Override
         public void onLockerDeviceLost(LockerDevice lockerDevice) {
             log("onLockerDeviceLost = " + lockerDevice);
-            if (devicesCallback != null) {
-                PluginResult result = new PluginResult(PluginResult.Status.OK,
-                        lockerDeviceToJson(lockerDevice, DeviceStatus.DeviceLost));
-                result.setKeepCallback(true);
-                devicesCallback.sendPluginResult(result);
-            }
+            sendLockerDeviceEvent(lockerDevice, DeviceStatus.DeviceLost);
         }
 
         @Override
         public void onLockerDeviceDetected(LockerDevice lockerDevice) {
             log("onLockerDeviceDetected = " + lockerDevice);
-            if (devicesCallback != null) {
-                PluginResult result = new PluginResult(PluginResult.Status.OK,
-                        lockerDeviceToJson(lockerDevice, DeviceStatus.DeviceDetected));
-                result.setKeepCallback(true);
-                devicesCallback.sendPluginResult(result);
-            }
+            sendLockerDeviceEvent(lockerDevice, DeviceStatus.DeviceDetected);
         }
 
     };
@@ -300,6 +287,15 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         });
     }
 
+    private void sendLockerDeviceEvent(LockerDevice lockerDevice, DeviceStatus deviceStatus) {
+        if (devicesCallback != null) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK,
+                    lockerDeviceToJson(lockerDevice, deviceStatus));
+            result.setKeepCallback(true);
+            devicesCallback.sendPluginResult(result);
+        }
+    }
+
     /*
         Response: async callback with device status json:
         {
@@ -462,6 +458,14 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                     startForegroundScanner();
 
                     devicesCallback = callbackContext;
+
+                    // send existing result
+                    List<LockerDevice> devices =
+                            JetBeepSDK.INSTANCE.getConnections().getLockers().getVisibleDevices();
+                    for (LockerDevice device : devices) {
+                        sendLockerDeviceEvent(device, DeviceStatus.DeviceDetected);
+                    }
+
                     lockers.startSearch(tokens);
                     log("search started");
 
