@@ -2,7 +2,12 @@ package com.jetbeepsdk.plugin;
 
 import android.Manifest;
 import android.app.Application;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
@@ -41,6 +46,9 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     private Lockers lockers = null;
     private CallbackContext devicesCallback = null;
     private CallbackContext jsLocationsCallback = null;
+    private CallbackContext bluetoothStateCallback = null;
+
+    private IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
 
     private enum DeviceStatus {
         DeviceDetected,
@@ -54,6 +62,70 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         onShopExit,
         onMerchantEntered,
         onMerchantExit,
+    }
+
+    @Override
+    public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+        log("execute action -> " + action);
+        switch (action) {
+            case "initSDK": {
+                initSDK(args.getString(0), callbackContext);
+                return true;
+            }
+            case "searchDevices": {
+                searchDevices(args.getString(0), callbackContext);
+                return true;
+            }
+            case "stopSearching": {
+                stopSearching(args.getString(0), callbackContext);
+                return true;
+            }
+            case "applyToken": {
+                applyToken(args.getString(0), callbackContext);
+                return true;
+            }
+            case "isPermissionGranted": {
+                isPermissionGranted(callbackContext);
+                return true;
+            }
+            case "requestPermissions": {
+                requestPermissions(callbackContext);
+                return true;
+            }
+            case "enableBeeper": {
+                enableBeeper(callbackContext);
+                return true;
+            }
+            case "subscribeToLocations": {
+                subscribeToLocations(callbackContext);
+                return true;
+            }
+            case "unsubscribeFromLocations": {
+                unsubscribeFromLocations(callbackContext);
+                return true;
+            }
+            case "getEnteredShops": {
+                getEnteredShops(callbackContext);
+                return true;
+            }
+            case "getNearbyDevices": {
+                getNearbyDevices(callbackContext);
+                return true;
+            }
+            case "bluetoothState": {
+                bluetoothState(callbackContext);
+                return true;
+            }
+            case "subscribeBluetoothEvents": {
+                subscribeBluetoothEvents(callbackContext);
+                return true;
+            }
+            case "unsubscribeBluetoothEvents": {
+                unsubscribeBluetoothEvents(callbackContext);
+                return true;
+            }
+        }
+        return false;
     }
 
     private final DeviceStatusCallback lockersListener = new DeviceStatusCallback() {
@@ -166,56 +238,32 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         }
     };
 
-    @Override
-    public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        log("execute action -> " + action);
-        switch (action) {
-            case "initSDK": {
-                initSDK(args.getString(0), callbackContext);
-                return true;
+    private void bluetoothState(CallbackContext callbackContext) {
+        runInUiThread(() -> {
+            boolean result = false;
+            BluetoothManager bluetoothManager =
+                    (BluetoothManager) cordova.getContext().getSystemService(Context.BLUETOOTH_SERVICE);
+            if (bluetoothManager != null) {
+                BluetoothAdapter adapter = bluetoothManager.getAdapter();
+                result = adapter != null && adapter.isEnabled();
             }
-            case "searchDevices": {
-                searchDevices(args.getString(0), callbackContext);
-                return true;
-            }
-            case "stopSearching": {
-                stopSearching(args.getString(0), callbackContext);
-                return true;
-            }
-            case "applyToken": {
-                applyToken(args.getString(0), callbackContext);
-                return true;
-            }
-            case "isPermissionGranted": {
-                isPermissionGranted(callbackContext);
-                return true;
-            }
-            case "requestPermissions": {
-                requestPermissions(callbackContext);
-                return true;
-            }
-            case "enableBeeper": {
-                enableBeeper(callbackContext);
-                return true;
-            }
-            case "subscribeToLocations": {
-                subscribeToLocations(callbackContext);
-                return true;
-            }
-            case "unsubscribeFromLocations": {
-                unsubscribeFromLocations(callbackContext);
-                return true;
-            }
-            case "getEnteredShops": {
-                getEnteredShops(callbackContext);
-                return true;
-            }
-            case "getNearbyDevices": {
-                getNearbyDevices(callbackContext);
-                return true;
-            }
-        }
-        return false;
+            sendBluetoothState(callbackContext, false, result);
+        });
+    }
+
+    private void subscribeBluetoothEvents(CallbackContext callbackContext) {
+        runInUiThread(() -> {
+            bluetoothStateCallback = callbackContext;
+            cordova.getActivity().registerReceiver(bluetoothStateChangeReceiver, filter);
+        });
+    }
+
+    private void unsubscribeBluetoothEvents(CallbackContext callbackContext) {
+        runInUiThread(() -> {
+            bluetoothStateCallback = null;
+            cordova.getActivity().unregisterReceiver(bluetoothStateChangeReceiver);
+            callbackContext.success();
+        });
     }
 
     private void subscribeToLocations(CallbackContext callbackContext) {
@@ -510,21 +558,23 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                     if (lockers != null) {
                         Token token = Token.Companion.createToken(msg);
 
-                        log("###waitong for apply...");
+                        log("###waiting for apply...");
 
-                        lockers.apply(token, new Continuation<TokenResult>() {
-                            @NonNull
-                            @Override
-                            public CoroutineContext getContext() {
-                                return GlobalScope.INSTANCE.getCoroutineContext();
-                            }
+                        TokenResult result = (TokenResult) lockers.apply(token,
+                                new Continuation<TokenResult>() {
+                                    @NonNull
+                                    @Override
+                                    public CoroutineContext getContext() {
+                                        return GlobalScope.INSTANCE.getCoroutineContext();
+                                    }
 
-                            @Override
-                            public void resumeWith(@NonNull Object o) {
-                                log("###Apply result: " + o);
-                                callbackContext.success();
-                            }
-                        });
+                                    @Override
+                                    public void resumeWith(@NonNull Object o) {
+                                        log("resumeWith: " + o);
+                                    }
+                                });
+                        log("Apply result: " + result);
+                        callbackContext.success();
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -607,5 +657,44 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             };
         }
         ActivityCompat.requestPermissions(cordova.getActivity(), permissions, 345);
+    }
+
+    private BroadcastReceiver bluetoothStateChangeReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
+                int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
+                        BluetoothAdapter.ERROR);
+                if (state == BluetoothAdapter.STATE_ON) {
+                    // bt is enabled
+                    sendBluetoothState(bluetoothStateCallback, true, true);
+                } else if (state == BluetoothAdapter.STATE_OFF) {
+                    // bt is disabled
+                    sendBluetoothState(bluetoothStateCallback, true, false);
+                }
+            }
+        }
+    };
+
+    private void sendBluetoothState(CallbackContext callbackContext, boolean setKeepCallback,
+                                    boolean btState) {
+        if (callbackContext != null) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK,
+                    btStateToJson(btState));
+            if (setKeepCallback) {
+                result.setKeepCallback(true);
+            }
+            callbackContext.sendPluginResult(result);
+        }
+    }
+
+    private JSONObject btStateToJson(boolean btState) {
+        JSONObject result = new JSONObject();
+        try {
+            String state = btState ? "enabled" : "disabled";
+            result.put("bluetooth", state);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 }
