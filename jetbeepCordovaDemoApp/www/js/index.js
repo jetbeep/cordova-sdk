@@ -21,6 +21,10 @@
 // See https://cordova.apache.org/docs/en/latest/cordova/events/events.html#deviceready
 document.addEventListener('deviceready', onDeviceReady, false);
 
+document.getElementById("bluetoothStateButton").addEventListener("click", bluetoothState);
+document.getElementById("subscribeBluetoothEventsButton").addEventListener("click", subscribeBluetoothEvents);
+document.getElementById("unsubscribeBluetoothEventsButton").addEventListener("click", unsubscribeBluetoothEvents);
+
 document.getElementById("isPermissionGrantedButton").addEventListener("click", isPermissionGranted);
 document.getElementById("requestPermissionsButton").addEventListener("click", requestPermissions);
 document.getElementById("enableBeeperButton").addEventListener("click", enableBeeper);
@@ -35,9 +39,9 @@ document.getElementById("tokenButton").addEventListener("click", searchDevices);
 document.getElementById("applyTokenButton").addEventListener("click", applyToken);
 document.getElementById("stopSearchButton").addEventListener("click", stopSearching);
 
-document.getElementById('appNameKey').value = 'YOUR APP NAME AT CONFIG FILE';
-document.getElementById('appToken').value = 'YOUR APP TOKEN AT CONFIG FILE';
-document.getElementById('serviceUUID').value = 'YOUR SERVICE UUID AT CONFIG FILE';
+document.getElementById('appNameKey').value = 'gls-app';
+document.getElementById('appToken').value = '4db96549-ea58-4cc1-bb5c-4ee9de416585';
+document.getElementById('serviceUUID').value = '17a7';
 
 // var cordova = require('cordova');
 cordova.fireWindowEvent('deviceStatus');
@@ -63,11 +67,11 @@ function isPermissionGranted() {
     // Check for permissions
    logger('isPermissionGranted function call');
    jetbeepsdkplugin
-   .isPermissionGranted("", 
+   .isPermissionGranted("",
    function(success){
     logger('permissions granted: success')
     logger(success)
-   }, 
+   },
    function(error){
     logger('permissions granted: error')
     logger(error)
@@ -78,11 +82,11 @@ function requestPermissions() {
     // Request for permissions
    logger('requestPermissions function call');
    jetbeepsdkplugin
-   .requestPermissions("", 
+   .requestPermissions("",
    function(success){
     logger('request permissions: success')
     logger(success)
-   }, 
+   },
    function(error){
     logger('request permissions: error')
     logger(error)
@@ -93,11 +97,11 @@ function enableBeeper() {
     // Enable beeper
    logger('enableBeeper function call');
    jetbeepsdkplugin
-   .enableBeeper("", 
+   .enableBeeper("",
    function(success){
     logger('enable beeper: success')
     logger(success)
-   }, 
+   },
    function(error){
     logger('enable beeper: error')
     logger(error)
@@ -133,11 +137,11 @@ function getNearbyDevices() {
     // Get nearby devices
    logger('getNearbyDevices function call');
    jetbeepsdkplugin
-   .getNearbyDevices("", 
+   .getNearbyDevices("",
    function(success){
     logger('get nearby devices: success')
     logger(success)
-   }, 
+   },
    function(error){
     logger('get nearby devices: error')
     logger(error)
@@ -148,11 +152,11 @@ function getEnteredShops() {
     // Get entered shops
    logger('getEnteredShops function call');
    jetbeepsdkplugin
-   .getEnteredShops("", 
+   .getEnteredShops("",
    function(success){
     logger('get entered shops: success')
     logger(success)
-   }, 
+   },
    function(error){
     logger('get entered shops: error')
     logger(error)
@@ -167,7 +171,7 @@ function subscribeToLocations() {
    function(success){
     logger('subscribeToLocations event: success')
     logger(success)
-   }, 
+   },
    function(error){
     logger('subscribeToLocations event: error')
     logger(error)
@@ -178,11 +182,11 @@ function unsubscribeFromLocations() {
     // Subscribe to get shop enter/exit
    logger('subscribeToLocations function call');
    jetbeepsdkplugin
-   .getEnteredShops("", 
+   .getEnteredShops("",
    function(success){
     logger('get shop event:')
     logger(success)
-   }, 
+   },
    function(error){
     logger('get shop error: error')
     logger(error)
@@ -231,5 +235,48 @@ function stopSearching() {
     },
     function(error) {
         logger('stopSearching: failure');
+    });
+}
+
+
+function bluetoothState() {
+    logger('bluetoothState');
+
+    jetbeepsdkplugin.bluetoothState("",
+    function(success) {
+        logger('bluetoothState:');
+        logger(success)
+    },
+    function(error) {
+        logger('bluetoothState: error');
+        logger(error)
+    });
+}
+
+function subscribeBluetoothEvents() {
+    logger('subscribeBluetoothEvents');
+
+    jetbeepsdkplugin.subscribeBluetoothEvents("",
+    function(success) {
+        logger('subscribeBluetoothEvents:');
+        logger(success)
+    },
+    function(error) {
+        logger('subscribeBluetoothEvents: error');
+        logger(error)
+    });
+}
+
+function unsubscribeBluetoothEvents() {
+    logger('unsubscribeBluetoothEvents');
+
+    jetbeepsdkplugin.unsubscribeBluetoothEvents("",
+    function(success) {
+        logger('unsubscribeBluetoothEvents:');
+        logger(success)
+    },
+    function(error) {
+        logger('unsubscribeBluetoothEvents: error');
+        logger(error)
     });
 }
