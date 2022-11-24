@@ -1,4 +1,7 @@
 import JetBeepFramework
+import CoreBluetooth
+import Foundation
+import Promises
 
 private extension VendingConnectionState {
     var description: String {
@@ -64,6 +67,83 @@ extension Array where Element == [String: Any] {
     }
 }
 
+enum BluetoothEvent: String {
+    case enabled
+    case disabled
+}
+
+typealias BlutoothEventCallback = (BluetoothEvent) -> ()
+
+class BluetoothNotifier: NSObject {
+    private var lastCallbackId = 0
+    private var bluetoothCallbacks = [Int: BlutoothEventCallback]()
+
+    fileprivate var bluetoothSubscribe: CDVInvokedUrlCommand?
+    fileprivate var lockersSubscribe: CDVInvokedUrlCommand?
+    fileprivate var locationsSubscribe: CDVInvokedUrlCommand?
+
+    public func subscribe(_ callback: @escaping BlutoothEventCallback) -> Int {
+        lastCallbackId += 1
+        bluetoothCallbacks[lastCallbackId] = callback
+        return lastCallbackId
+    }
+
+    public func unsubscribe(_ id: Int) {
+        bluetoothCallbacks.removeValue(forKey: id)
+    }
+
+    func notify(event: BluetoothEvent) {
+        DispatchQueue.main.async {
+            for i in self.bluetoothCallbacks {
+                i.value(event)
+            }
+        }
+    }
+}
+
+class BluetoothController: BluetoothNotifier {
+    static let shared = BluetoothController()
+    private var bluetoothManager: CBCentralManager!
+
+    private override init() {
+        super.init()
+
+        bluetoothManager = CBCentralManager(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: false])
+    }
+
+    func bluetoothStatus() -> Promise<BluetoothEvent> {
+
+        _ = bluetoothManager.state
+
+        return Promise { [self] in
+
+            if self.bluetoothManager.state == .poweredOn {
+                return Promise(BluetoothEvent.enabled).delay(0.33)
+            }
+            return Promise(BluetoothEvent.disabled).delay(0.33)
+        }
+    }
+
+}
+
+extension BluetoothController: CBCentralManagerDelegate {
+
+    public func centralManagerDidUpdateState(_ central: CBCentralManager) {
+
+        print("New state available \( central.state)")
+        switch central.state {
+        case .poweredOn:
+            return notify(event: .enabled)
+        case .poweredOff, .resetting, .unauthorized, .unsupported:
+            return notify(event: .disabled)
+        case .unknown:
+            return notify(event: .disabled)
+        }
+    }
+
+}
+
+
 @objc(JetBeepSDKPlugin) class JetBeepSDKPlugin : CDVPlugin {
 
     enum DeviceState {
@@ -88,6 +168,7 @@ extension Array where Element == [String: Any] {
 
     private var callbackIdentifier = -1
     private var callbackLocationsIdentifier = -1
+    private var callbackBluetoothIdentifier = -1
 
     @objc(initSDK:)
     func initSDK(command: CDVInvokedUrlCommand) {
@@ -117,6 +198,7 @@ extension Array where Element == [String: Any] {
         JetBeep.shared.registrationType = .anonymous
         JetBeep.shared.setup(appName: appNameKey, appTokenKey: appToken)
         JetBeep.shared.serviceUUID = "0" + serviceUUID
+
 
         JetBeep.shared.sync()
             .then { _ in
@@ -205,7 +287,7 @@ extension Array where Element == [String: Any] {
 
         guard let hexes = command.arguments[0] as? [String],
               let tokens = tokensList(with: hexes)
-                else {
+        else {
             pluginResult = CDVPluginResult(
                 status: .error,
                 messageAs: "Input search devices parameters are wrong!"
@@ -216,6 +298,10 @@ extension Array where Element == [String: Any] {
             )
             return
         }
+
+        clearLockersSubscriber()
+
+        BluetoothController.shared.lockersSubscribe = command
 
         LockersController.shared.startSearch(for: tokens)
 
@@ -254,6 +340,8 @@ extension Array where Element == [String: Any] {
         var pluginResult = CDVPluginResult(
             status: .error
         )
+
+        clearLockersSubscriber()
 
         if LockersController.shared.stopSearch() {
             pluginResult = CDVPluginResult(
@@ -323,11 +411,15 @@ extension Array where Element == [String: Any] {
 
     @objc(subscribeToLocations:)
     func subscribeToLocations(command: CDVInvokedUrlCommand) {
+
+        clearLocationsSubscriber()
         var pluginResult = CDVPluginResult(
             status: .ok
         )
 
         Log.d("Subscribe to shop enter/exit")
+
+        BluetoothController.shared.locationsSubscribe = command
 
         callbackLocationsIdentifier = JBLocations.shared.subscribe { event in
             switch event {
@@ -410,11 +502,141 @@ extension Array where Element == [String: Any] {
         )
     }
 
+    @objc(bluetoothState:)
+    func bluetoothState(command: CDVInvokedUrlCommand) {
+        Log.d("Bluetooth state fired")
+        fireBluetoothState(command: command)
+    }
+
+
+    @objc(subscribeBluetoothEvents:)
+    func subscribeBluetoothEvents(command: CDVInvokedUrlCommand) {
+        Log.d("Subscribe to bluettoth on/off")
+
+        clearBluetoothSubscriber()
+
+        BluetoothController.shared.bluetoothSubscribe = command
+
+        fireBluetoothState(command: command, keepAlive: true)
+
+        callbackBluetoothIdentifier = BluetoothController.shared.subscribe { event in
+            let dictionary: [String: Any] = ["bluetooth": event.rawValue]
+
+            let pluginResult = CDVPluginResult(
+                status: .ok,
+                messageAs: dictionary.jsonString
+            )
+
+            pluginResult?.setKeepCallbackAs(true)
+
+            self.commandDelegate!.send(
+                pluginResult,
+                callbackId: command.callbackId
+            )
+        }
+    }
+
+    private func fireBluetoothState(command: CDVInvokedUrlCommand, keepAlive: Bool = false) {
+        BluetoothController.shared
+            .bluetoothStatus()
+            .then { state in
+                let dictionary: [String: Any] = ["bluetooth": state.rawValue]
+
+                let pluginResult = CDVPluginResult(
+                    status: .ok,
+                    messageAs: dictionary.jsonString
+                )
+
+                Log.d("Bluetooth state \(dictionary.jsonString)")
+
+                pluginResult?.setKeepCallbackAs(keepAlive)
+
+                self.commandDelegate!.send(
+                    pluginResult,
+                    callbackId: command.callbackId
+                )
+            }
+
+    }
+
+
+    @objc(unsubscribeBluetoothEvents:)
+    func unsubscribeBluetoothEvents(command: CDVInvokedUrlCommand) {
+
+        clearBluetoothSubscriber()
+
+        let pluginResult = CDVPluginResult(
+            status: .ok
+        )
+
+        Log.d("Unsubscribe from bluetooth on/off events listiner")
+
+        BluetoothController.shared.unsubscribe(callbackBluetoothIdentifier)
+
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: command.callbackId
+        )
+    }
+
+    private func clearBluetoothSubscriber() {
+        guard let bluetoothSubscribe = BluetoothController.shared.bluetoothSubscribe else {
+            return
+        }
+        let pluginResult = CDVPluginResult(
+            status: .noResult
+        )
+
+        pluginResult?.setKeepCallbackAs(false)
+
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: bluetoothSubscribe.callbackId
+        )
+
+        BluetoothController.shared.bluetoothSubscribe = nil
+    }
+
+    private func clearLockersSubscriber() {
+        guard let lockersSubscribe = BluetoothController.shared.lockersSubscribe else {
+            return
+        }
+        let pluginResult = CDVPluginResult(
+            status: .noResult
+        )
+
+        pluginResult?.setKeepCallbackAs(false)
+
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: lockersSubscribe.callbackId
+        )
+
+        BluetoothController.shared.lockersSubscribe = nil
+    }
+
+    private func clearLocationsSubscriber() {
+        guard let locationsSubscribe = BluetoothController.shared.locationsSubscribe else {
+            return
+        }
+        let pluginResult = CDVPluginResult(
+            status: .noResult
+        )
+
+        pluginResult?.setKeepCallbackAs(false)
+
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: locationsSubscribe.callbackId
+        )
+
+        BluetoothController.shared.locationsSubscribe = nil
+    }
 
     private func tokensList(with hexs: [String]) -> [Token]? {
         return hexs.compactMap { hex in
             if !hex.isEmpty {
-              return TokenGenerator.create(hex: hex)
+                return TokenGenerator.create(hex: hex)
             }
             return nil
         }

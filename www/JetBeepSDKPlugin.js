@@ -43,3 +43,15 @@ exports.getEnteredShops = function(arg0, success, error) {
 exports.getNearbyDevices = function(arg0, success, error) {
     exec(success, error, 'JetBeepSDKPlugin', 'getNearbyDevices', [arg0]);
 };
+
+exports.bluetoothState = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'bluetoothState', [arg0]);
+};
+
+exports.subscribeBluetoothEvents = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'subscribeBluetoothEvents', [arg0]);
+};
+
+exports.unsubscribeBluetoothEvents = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'unsubscribeBluetoothEvents', [arg0]);
+};
