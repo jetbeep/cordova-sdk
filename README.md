@@ -8,15 +8,17 @@ Get in into your terminal and call at your project folder `cordova plugin add co
 
 ## Android
 
-1. Add Android platform `cordova platform add android` if you don't have it.
+1. Get in at `jetbeepCordovaDemoApp` folder at your command line.
+2. Add Android platform `cordova platform add android` if you don't have it.
 
 ## iOS integration
 
 After adding plugin into your project and installing relative Cocoapods
 
-1. Add iOS platform `cordova platform add ios` if you don't have it.
-2. Go at `platforms\ios`
-3. Open `Podfile` and add in the end of file:
+1. Get in at `jetbeepCordovaDemoApp` folder at your command line.
+2. Add iOS platform `cordova platform add ios` if you don't have it.
+3. Go at `platforms\ios`
+4. Open `Podfile` and add in the end of file:
 
    ```ruby
    post_install do |installer|
@@ -28,8 +30,8 @@ After adding plugin into your project and installing relative Cocoapods
    end
    ```
 
-4. **Save changes**
-5. Call `pod update`
-6. Don't for get to call `pod update` when you play with Cocoapods in future.
+5. **Save changes**
+6. Call `pod update`
+7. Don't for get to call `pod update` when you play with Cocoapods in future.
 
 _Now you are ready to go!_
