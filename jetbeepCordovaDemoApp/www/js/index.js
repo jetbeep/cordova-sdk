@@ -46,6 +46,8 @@ document.getElementById('serviceUUID').value = '17a7';
 // var cordova = require('cordova');
 cordova.fireWindowEvent('deviceStatus');
 
+var plugins = cordova.require("cordova/plugin_list").metadata;
+
 window.addEventListener('deviceStatus', searchDevices);
 
 function logger(log) {
@@ -59,6 +61,14 @@ function onDeviceReady() {
     // Cordova is now initialized. Have fun!
     console.log('Running cordova-' + cordova.platformId + '@' + cordova.version);
     document.getElementById('deviceready').classList.add('ready');
+
+    var plugins = cordova.require("cordova/plugin_list").metadata;
+    if (typeof plugins['com-jetbeep-plugins-sdk'] === "undefined")
+    {
+        logger('Jetbeep plugin is not installed!!! Please check readme at https://github.com/jetbeep/cordova-sdk')
+    } else {
+        logger('Jetbeep plugin is installed. We are ready to go!')
+    }
 
     app.receivedEvent('deviceready');
 }
