@@ -51,8 +51,8 @@ window.addEventListener('deviceStatus', searchDevices);
 function logger(log) {
     const container = document.querySelector('.founded-devices');
     container.classList.remove('founded-devices__empty');
-    container.innerHTML = container.innerHTML + log + "<br />";
-    console.log(log);
+    container.innerHTML = container.innerHTML + JSON.stringify(log) + "<br />";
+    console.log(JSON.stringify(log));
 }
 
 function onDeviceReady() {
