@@ -17,11 +17,11 @@ private extension VendingConnectionState {
 }
 
 private extension LockerDevice {
-    func json(for status: JetBeepSDKPlugin.DeviceState) -> String {
+    func json(for status: JetBeepSDKPlugin.DeviceState) -> [String: Any] {
         return ["deviceId" : device.deviceId,
                 "deviceName": device.shop.name,
                 "isConnactable": device.state.contains(.connectable) ? "true": "false",
-                "status": status.description].jsonString
+                "status": status.description]
     }
 }
 
@@ -31,11 +31,10 @@ private extension Shop {
         case exit = "onShopExit"
     }
 
-    func json(with event: Event) -> String {
-        let dictionary: [String: Any] = ["event": event.rawValue,
-                                         "shop": ["shopId": self.id,
-                                                  "shopName": self.name.description]]
-        return dictionary.jsonString
+    func json(with event: Event) -> [String: Any] {
+        return ["event": event.rawValue,
+                "shop": ["shopId": self.id,
+                         "shopName": self.name.description]]
     }
 }
 
@@ -163,8 +162,6 @@ extension BluetoothController: CBCentralManagerDelegate {
             }
         }
     }
-
-
 
     private var callbackIdentifier = -1
     private var callbackLocationsIdentifier = -1
@@ -465,7 +462,7 @@ extension BluetoothController: CBCentralManagerDelegate {
         let json = JBLocations.shared.enteredShops.map { shop in
             return ["shopId" : shop.id,
                     "shopName" : shop.name]
-        }.jsonString
+        }
 
 
         let pluginResult = CDVPluginResult(
@@ -492,7 +489,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
         let pluginResult = CDVPluginResult(
             status: .ok,
-            messageAs: deviceArray.jsonString
+            messageAs: deviceArray
         )
 
         Log.d("GetNearbyDevices \(deviceArray.jsonString)")
@@ -524,7 +521,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
             let pluginResult = CDVPluginResult(
                 status: .ok,
-                messageAs: dictionary.jsonString
+                messageAs: dictionary
             )
 
             pluginResult?.setKeepCallbackAs(true)
@@ -544,7 +541,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
                 let pluginResult = CDVPluginResult(
                     status: .ok,
-                    messageAs: dictionary.jsonString
+                    messageAs: dictionary
                 )
 
                 Log.d("Bluetooth state \(dictionary.jsonString)")
@@ -633,6 +630,7 @@ extension BluetoothController: CBCentralManagerDelegate {
         BluetoothController.shared.locationsSubscribe = nil
     }
 
+
     private func tokensList(with hexs: [String]) -> [Token]? {
         return hexs.compactMap { hex in
             if !hex.isEmpty {
@@ -643,3 +641,5 @@ extension BluetoothController: CBCentralManagerDelegate {
     }
 
 }
+
+
