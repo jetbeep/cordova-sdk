@@ -3,7 +3,7 @@ import CoreBluetooth
 import Foundation
 import Promises
 
-private extension VendingConnectionState {
+private extension Device.ConnectionState {
     var description: String {
         switch self {
         case .connected:
@@ -21,7 +21,9 @@ private extension LockerDevice {
         return ["deviceId" : device.deviceId,
                 "deviceName": device.shop.name,
                 "isConnactable": device.state.contains(.connectable) ? "true": "false",
-                "status": status.description]
+                "status": status.description,
+                "userData": device.userData?.utf8() ?? ""
+        ]
     }
 }
 
@@ -630,7 +632,6 @@ extension BluetoothController: CBCentralManagerDelegate {
         BluetoothController.shared.locationsSubscribe = nil
     }
 
-
     private func tokensList(with hexs: [String]) -> [Token]? {
         return hexs.compactMap { hex in
             if !hex.isEmpty {
@@ -641,5 +642,3 @@ extension BluetoothController: CBCentralManagerDelegate {
     }
 
 }
-
-
