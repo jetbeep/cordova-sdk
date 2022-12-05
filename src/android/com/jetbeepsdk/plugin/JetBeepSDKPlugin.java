@@ -14,6 +14,7 @@ import android.util.Log;
 
 import com.jetbeep.JetBeepRegistrationType;
 import com.jetbeep.JetBeepSDK;
+import com.jetbeep.background.UserData;
 import com.jetbeep.background.scanner.BleScanner;
 import com.jetbeep.connection.locker.DeviceStatusCallback;
 import com.jetbeep.connection.locker.LockerDevice;
@@ -363,6 +364,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             if (status != DeviceStatus.None) {
                 result.put("status", status.toString());
             }
+            UserData userData = lockerDevice.getDevice().getUserData();
+            result.put("userData", userData != null ? userData.utf8() : "");
         } catch (JSONException e) {
             e.printStackTrace();
         }
