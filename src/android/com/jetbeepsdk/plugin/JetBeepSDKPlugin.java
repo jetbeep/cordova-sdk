@@ -14,6 +14,7 @@ import android.util.Log;
 
 import com.jetbeep.JetBeepRegistrationType;
 import com.jetbeep.JetBeepSDK;
+import com.jetbeep.OfflineConfig;
 import com.jetbeep.background.UserData;
 import com.jetbeep.background.scanner.BleScanner;
 import com.jetbeep.connection.locker.DeviceStatusCallback;
@@ -71,6 +72,10 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         switch (action) {
             case "initSDK": {
                 initSDK(args.getString(0), callbackContext);
+                return true;
+            }
+            case "initWithOfflineConfig": {
+                initWithOfflineConfig(args.getString(0), callbackContext);
                 return true;
             }
             case "searchDevices": {
@@ -457,10 +462,50 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
                     JetBeepSDK sdk = JetBeepSDK.INSTANCE;
 
-                    sdk.init((Application) webView.getContext().getApplicationContext(),
-                            serviceUUID, appName, appToken, JetBeepRegistrationType.ANONYMOUS,
-                            false);
+                    Application app = (Application) webView.getContext().getApplicationContext();
+                    sdk.init(app, serviceUUID, appName, appToken,
+                            JetBeepRegistrationType.ANONYMOUS, false);
                     sdk.getRepository().trySync();
+
+                    callbackContext.success("SDK initialized successfully");
+                    log("Sdk was initialized");
+                });
+
+                //callbackContext.success("SDK initialized successfully");
+            } catch (JSONException e) {
+                e.printStackTrace();
+                callbackContext.error("Failed to init sdk");
+                log("Failed to init sdk");
+            }
+        }
+    }
+
+    private void initWithOfflineConfig(String msg, CallbackContext callbackContext) {
+        if (msg == null || msg.length() == 0) {
+            callbackContext.error("Empty message!");
+            log("init sdk error: Empty message!");
+        } else {
+            try {
+                JSONArray params = new JSONArray(msg);
+                String serviceUUID = (String) params.get(0);
+                String jsonConfig = (String) params.get(1);
+
+                //initInUi(serviceUUID, jsonConfig, callbackContext);
+                runInUiThread(() -> {
+                    log("java, init sdk: serviceUUID = " + serviceUUID + ", jsonConfig = " + jsonConfig);
+
+                    JetBeepSDK sdk = JetBeepSDK.INSTANCE;
+                    Application app = (Application) webView.getContext().getApplicationContext();
+
+                    try {
+                        OfflineConfig config = OfflineConfig.Companion.fromJson(jsonConfig);
+                        sdk.init(app, serviceUUID, config);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        callbackContext.error("Failed to init sdk, " + e.getMessage());
+                        log("Failed to init sdk");
+                        return;
+                    }
 
                     callbackContext.success("SDK initialized successfully");
                     log("Sdk was initialized");

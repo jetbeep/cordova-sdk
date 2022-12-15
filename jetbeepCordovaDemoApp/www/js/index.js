@@ -31,10 +31,11 @@ document.getElementById("enableBeeperButton").addEventListener("click", enableBe
 document.getElementById("getNearbyDevicesButton").addEventListener("click", getNearbyDevices);
 document.getElementById("getEnteredShopsButton").addEventListener("click", getEnteredShops);
 document.getElementById("subscribeToLocationsButton").addEventListener("click", subscribeToLocations);
-document.getElementById("unsubscribeFromLocationsButton").addEventListener("click", initSDK);
+document.getElementById("unsubscribeFromLocationsButton").addEventListener("click", unsubscribeFromLocations);
 
 
 document.getElementById("initSDKButton").addEventListener("click", initSDK);
+document.getElementById("initOfflineSDKButton").addEventListener("click", initOfflineSDK);
 document.getElementById("tokenButton").addEventListener("click", searchDevices);
 document.getElementById("applyTokenButton").addEventListener("click", applyToken);
 document.getElementById("stopSearchButton").addEventListener("click", stopSearching);
@@ -43,10 +44,9 @@ document.getElementById('appNameKey').value = 'gls-app';
 document.getElementById('appToken').value = '4db96549-ea58-4cc1-bb5c-4ee9de416585';
 document.getElementById('serviceUUID').value = '17a7';
 
+
 // var cordova = require('cordova');
 cordova.fireWindowEvent('deviceStatus');
-
-var plugins = cordova.require("cordova/plugin_list").metadata;
 
 window.addEventListener('deviceStatus', searchDevices);
 
@@ -75,6 +75,8 @@ function onDeviceReady() {
 
 function isPermissionGranted() {
     // Check for permissions
+
+
    logger('isPermissionGranted function call');
    jetbeepsdkplugin
    .isPermissionGranted("",
@@ -118,7 +120,7 @@ function enableBeeper() {
    })
 }
 
-function initSDK(appNameKey, appToken, serviceUUID){
+function initSDK(){
     logger('initSDK');
     let x = document.getElementById('appNameKey').value
     let y = document.getElementById('appToken').value
@@ -138,6 +140,28 @@ function initSDK(appNameKey, appToken, serviceUUID){
                         },
                         function(error) {
                             logger('initSDK: error');
+                            logger(error)
+                        }
+                        );
+}
+
+
+function initOfflineSDK(){
+    logger('initOfflineSDK');
+
+    let serviceUUID = document.getElementById('serviceUUID').value
+    let offlineJSONConfig = document.getElementById('offlineConfig').value
+
+    logger([serviceUUID, offlineJSONConfig])
+
+    jetbeepsdkplugin.initWithOfflineConfig(
+                        [serviceUUID, offlineJSONConfig],
+                        function(success) {
+                            logger('initOfflineSDK: success');
+                            logger(success)
+                        },
+                        function(error) {
+                            logger('initOfflineSDK: error');
                             logger(error)
                         }
                         );

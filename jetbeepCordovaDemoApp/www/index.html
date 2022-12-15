@@ -54,13 +54,18 @@
                 </div>
 
                 <div class="input_container">
-                    <label for="serviceUUID">App appToken:</label>
+                    <label for="serviceUUID">Service UUID:</label>
                     <input type="text" id="serviceUUID" name="serviceUUID">
                 </div>
 
                 <div class="input_container">
                     <label for="tokenHex">Search hex:</label>
                     <input type="text" id="tokenHex" name="tokenHex">
+                </div>
+
+                <div class="input_container">
+                    <label for="offlineConfig">Offline JSON config:</label>
+                    <input type="text" id="offlineConfig" name="offlineConfig">
                 </div>
               </form>
             <div class="button-container">
@@ -71,6 +76,7 @@
                 <button id="isPermissionGrantedButton" class="actionButton">Check is permission granted</button>
                 <button id="requestPermissionsButton" class="actionButton">Request permissions</button>
                 <button id="initSDKButton" class="actionButton">Init SDK</button>
+                <button id="initOfflineSDKButton" class="actionButton">Init Offline SDK</button>
 
                 <button id="tokenButton" class="actionButton">Search token value</button>
                 <button id="enableBeeperButton" class="actionButton">Enable beeper</button>

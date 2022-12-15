@@ -4,6 +4,10 @@ exports.initSDK = function(arg0, success, error) {
     exec(success, error, 'JetBeepSDKPlugin', 'initSDK', [arg0]);
 };
 
+exports.initWithOfflineConfig = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'initWithOfflineConfig', [arg0]);
+};
+
 exports.searchDevices = function(arg0, success, error) {
     exec(success, error, 'JetBeepSDKPlugin', 'searchDevices', [arg0]);
 };

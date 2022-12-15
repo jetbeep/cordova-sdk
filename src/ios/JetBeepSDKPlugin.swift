@@ -231,6 +231,81 @@ extension BluetoothController: CBCentralManagerDelegate {
         )
     }
 
+
+    @objc(initWithOfflineConfig:)
+    func initWithOfflineConfig(command: CDVInvokedUrlCommand) {
+        var pluginResult = CDVPluginResult(
+            status: .error
+        )
+        Log.d("SDK init parameters set \(command.arguments[0])")
+
+        guard let inputArray = command.arguments[0] as? [String],
+              inputArray.count == 2  else {
+            pluginResult = CDVPluginResult(
+                status: .error,
+                messageAs: "Number of input config parameters are wrong! It should be 3 of them"
+            )
+            Log.d("Number of input config parameters are wrong! It should be 3 of them")
+            return
+        }
+
+        let serviceUUID = inputArray[0]
+        let json = inputArray[1]
+
+
+        Log.isLoggingEnabled = true
+
+        JetBeep.shared.serviceUUID = "0" + serviceUUID
+
+        do {
+            let config = try OfflineConfig.fromJSON(json)
+            JetBeep.shared.offlineConfig = config
+        } catch {
+            print("Error \(error)")
+             pluginResult = CDVPluginResult(
+                status: .error,
+                messageAs: error.localizedDescription
+            )
+            self.commandDelegate!.send(
+                pluginResult,
+                callbackId: command.callbackId
+            )
+            return
+        }
+
+
+        JetBeep.shared.sync()
+            .then { _ in
+                Log.d("cached successfully")
+            }.catch { e in
+                pluginResult = CDVPluginResult(
+                    status: .error,
+                    messageAs: "unable to cache: \(e)"
+                )
+                Log.d("unable to cache: \(e)")
+            }
+
+        do {
+            try JBBeeper.shared.start()
+        } catch {
+            print(error)
+            pluginResult = CDVPluginResult(
+                status: .error,
+                messageAs: "Beeper start with error: \(error)"
+            )
+            Log.d("Beeper start with error: \(error)")
+        }
+
+        pluginResult = CDVPluginResult(
+            status: .ok
+        )
+
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: command.callbackId
+        )
+    }
+
     @objc(applyToken:)
     func applyToken(command: CDVInvokedUrlCommand) {
         var pluginResult = CDVPluginResult(
@@ -631,6 +706,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
         BluetoothController.shared.locationsSubscribe = nil
     }
+
 
     private func tokensList(with hexs: [String]) -> [Token]? {
         return hexs.compactMap { hex in

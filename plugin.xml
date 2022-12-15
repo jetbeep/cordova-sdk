@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="com-jetbeep-plugins-sdk" version="0.0.13" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+<plugin id="com-jetbeep-plugins-sdk" version="0.0.14" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
     <name>JetBeepSDKPlugin</name>
     <js-module name="JetBeepSDKPlugin" src="www/JetBeepSDKPlugin.js">
         <clobbers target="jetbeepsdkplugin" />
     </js-module>
     <dependency id="cordova-plugin-add-swift-support" version="2.0.2"/>
     <platform name="android">
-    <framework src="com.jetbeep:jetbeepsdk:1.10.3" />
+     <framework src="com.jetbeep:jetbeepsdk:1.11.0" />
         <framework src="org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4" />
         <config-file target="config.xml" parent="/*">
             <preference name="android-minSdkVersion" value="24" />
