@@ -45,6 +45,7 @@ import kotlinx.coroutines.GlobalScope;
 public class JetBeepSDKPlugin extends CordovaPlugin {
 
     private static final String TAG = "JetBeepSDKPlugin";
+    private static final int REQUEST_ENABLE_BT = 748;
     private Lockers lockers = null;
     private CallbackContext devicesCallback = null;
     private CallbackContext jsLocationsCallback = null;
@@ -128,6 +129,10 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             }
             case "unsubscribeBluetoothEvents": {
                 unsubscribeBluetoothEvents(callbackContext);
+                return true;
+            }
+            case "enableBluetooth": {
+                enableBluetooth(callbackContext);
                 return true;
             }
         }
@@ -441,6 +446,20 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             } else {
                 callbackContext.error("No permissions");
             }
+        });
+    }
+
+    private void enableBluetooth(CallbackContext callbackContext) {
+        runInUiThread(() -> {
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S && ActivityCompat.checkSelfPermission(cordova.getContext(),
+                    Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                callbackContext.error("android.permission.BLUETOOTH_CONNECT permission not " +
+                        "granted.");
+                return;
+            }
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            cordova.getActivity().startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            callbackContext.success();
         });
     }
 

@@ -59,3 +59,7 @@ exports.subscribeBluetoothEvents = function(arg0, success, error) {
 exports.unsubscribeBluetoothEvents = function(arg0, success, error) {
     exec(success, error, 'JetBeepSDKPlugin', 'unsubscribeBluetoothEvents', [arg0]);
 };
+
+exports.enableBluetooth = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'enableBluetooth', [arg0]);
+};
