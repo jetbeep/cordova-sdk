@@ -520,6 +520,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                     try {
                         OfflineConfig config = OfflineConfig.Companion.fromJson(jsonConfig);
                         sdk.init(app, serviceUUID, config);
+                        sdk.getRepository().trySync();
                     } catch (Exception e) {
                         e.printStackTrace();
                         callbackContext.error("Failed to init sdk, " + e.getMessage());
