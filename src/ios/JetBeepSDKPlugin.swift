@@ -262,7 +262,7 @@ extension BluetoothController: CBCentralManagerDelegate {
             JetBeep.shared.offlineConfig = config
         } catch {
             print("Error \(error)")
-             pluginResult = CDVPluginResult(
+            pluginResult = CDVPluginResult(
                 status: .error,
                 messageAs: error.localizedDescription
             )
@@ -717,4 +717,41 @@ extension BluetoothController: CBCentralManagerDelegate {
         }
     }
 
+
+    @objc(subscribeLogEvents:)
+    func subscribeLogEvents(command: CDVInvokedUrlCommand) {
+
+        Log.d("Subscribe Log Events")
+
+        var pluginResult = CDVPluginResult(
+            status: .ok
+        )
+
+        Log.logCompletion = { value in
+            pluginResult = CDVPluginResult(status: .ok,
+                                           messageAs: value)
+            pluginResult?.setKeepCallbackAs(true)
+            self.commandDelegate!.send(
+                pluginResult,
+                callbackId: command.callbackId
+            )
+        }
+    }
+
+    @objc(unsubscribeLogEvents:)
+    func unsubscribeLogEvents(command: CDVInvokedUrlCommand) {
+
+        let pluginResult = CDVPluginResult(
+            status: .ok
+        )
+
+        Log.logCompletion = nil
+
+        pluginResult?.setKeepCallbackAs(false)
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: command.callbackId
+        )
+
+    }
 }
