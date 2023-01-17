@@ -23,6 +23,9 @@ import com.jetbeep.connection.locker.Lockers;
 import com.jetbeep.connection.locker.Token;
 import com.jetbeep.connection.locker.TokenResult;
 import com.jetbeep.locations.LocationCallbacks;
+import com.jetbeep.logger.JBLog;
+import com.jetbeep.logger.LogCallback;
+import com.jetbeep.logger.LogLine;
 import com.jetbeep.model.entities.Merchant;
 import com.jetbeep.model.entities.Shop;
 
@@ -50,6 +53,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     private CallbackContext devicesCallback = null;
     private CallbackContext jsLocationsCallback = null;
     private CallbackContext bluetoothStateCallback = null;
+    private CallbackContext loggerCallBack = null;
 
     private IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
 
@@ -133,6 +137,14 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             }
             case "enableBluetooth": {
                 enableBluetooth(callbackContext);
+                return true;
+            }
+            case "subscribeLogEvents": {
+                subscribeLogEvents(callbackContext);
+                return true;
+            }
+            case "unsubscribeLogEvents": {
+                unsubscribeLogEvents(callbackContext);
                 return true;
             }
         }
@@ -246,6 +258,16 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                 e.printStackTrace();
             }
             return result;
+        }
+    };
+
+    private LogCallback jetbeepLoggerListener = new LogCallback() {
+        @Override
+        public void onLogLine(@NonNull LogLine logLine) {
+            String message = logLine.getTag() + ": " + logLine.getMessage();
+            PluginResult result = new PluginResult(PluginResult.Status.OK, message);
+            result.setKeepCallback(true);
+            loggerCallBack.sendPluginResult(result);
         }
     };
 
@@ -520,6 +542,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                     try {
                         OfflineConfig config = OfflineConfig.Companion.fromJson(jsonConfig);
                         sdk.init(app, serviceUUID, config);
+//                        sdk.getLogger().setRemoteLogging(true);
                         sdk.getRepository().trySync();
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -708,6 +731,19 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         } else {
             return true;
         }
+    }
+
+    private void subscribeLogEvents(CallbackContext callbackContext) {
+        loggerCallBack = callbackContext;
+        JBLog logger = JetBeepSDK.INSTANCE.getLogger();
+        logger.setRemoteLogging(true);
+        logger.subscribe(jetbeepLoggerListener);
+    }
+
+    private void unsubscribeLogEvents(CallbackContext callbackContext) {
+        loggerCallBack = null;
+        JetBeepSDK.INSTANCE.getLogger().unsubscribe(jetbeepLoggerListener);
+        callbackContext.success();
     }
 
     private void requestPermissionsImpl() {
