@@ -20,7 +20,7 @@ private extension LockerDevice {
     func json(for status: JetBeepSDKPlugin.DeviceState) -> [String: Any] {
         return ["deviceId" : device.deviceId,
                 "deviceName": device.shop.name,
-                "isConnactable": device.state.contains(.connectable) ? "true": "false",
+                "isConnectable": device.state.contains(.connectable) ? "true": "false",
                 "status": status.description,
                 "userData": device.userData?.utf8() ?? ""
         ]
@@ -73,17 +73,17 @@ enum BluetoothEvent: String {
     case disabled
 }
 
-typealias BlutoothEventCallback = (BluetoothEvent) -> ()
+typealias BluetoothEventCallback = (BluetoothEvent) -> ()
 
 class BluetoothNotifier: NSObject {
     private var lastCallbackId = 0
-    private var bluetoothCallbacks = [Int: BlutoothEventCallback]()
+    private var bluetoothCallbacks = [Int: BluetoothEventCallback]()
 
     fileprivate var bluetoothSubscribe: CDVInvokedUrlCommand?
     fileprivate var lockersSubscribe: CDVInvokedUrlCommand?
     fileprivate var locationsSubscribe: CDVInvokedUrlCommand?
 
-    public func subscribe(_ callback: @escaping BlutoothEventCallback) -> Int {
+    public func subscribe(_ callback: @escaping BluetoothEventCallback) -> Int {
         lastCallbackId += 1
         bluetoothCallbacks[lastCallbackId] = callback
         return lastCallbackId
@@ -441,7 +441,8 @@ extension BluetoothController: CBCentralManagerDelegate {
     func isPermissionGranted(command: CDVInvokedUrlCommand) {
         let pluginResult = CDVPluginResult(
             status: .ok,
-            messageAs: "This functionality triggers automatically at init SDK level."
+            messageAs: ["isBtReady": true,
+                        "isLocationGranted": true]
         )
 
         Log.d("Permission Granted action is fired")
@@ -752,6 +753,5 @@ extension BluetoothController: CBCentralManagerDelegate {
             pluginResult,
             callbackId: command.callbackId
         )
-
     }
 }
