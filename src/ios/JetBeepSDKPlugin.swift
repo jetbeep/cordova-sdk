@@ -439,10 +439,11 @@ extension BluetoothController: CBCentralManagerDelegate {
 
     @objc(isPermissionGranted:)
     func isPermissionGranted(command: CDVInvokedUrlCommand) {
+        let dictionary: [String: Any] = ["isBtReady": true,
+                                         "isLocationGranted": true]
         let pluginResult = CDVPluginResult(
             status: .ok,
-            messageAs: ["isBtReady": true,
-                        "isLocationGranted": true]
+            messageAs: dictionary.jsonString
         )
 
         Log.d("Permission Granted action is fired")
@@ -586,7 +587,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
     @objc(subscribeBluetoothEvents:)
     func subscribeBluetoothEvents(command: CDVInvokedUrlCommand) {
-        Log.d("Subscribe to bluettoth on/off")
+        Log.d("Subscribe to bluetooth on/off")
 
         clearBluetoothSubscriber()
 
