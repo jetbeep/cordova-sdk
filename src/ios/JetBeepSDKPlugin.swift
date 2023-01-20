@@ -114,15 +114,20 @@ class BluetoothController: BluetoothNotifier {
 
     func bluetoothStatus() -> Promise<BluetoothEvent> {
 
-        _ = bluetoothManager.state
-
         return Promise { [self] in
-
-            if self.bluetoothManager.state == .poweredOn {
-                return Promise(BluetoothEvent.enabled).delay(0.33)
-            }
-            return Promise(BluetoothEvent.disabled).delay(0.33)
+            _ = bluetoothManager.state
         }
+        .delay(0.33)
+        .then {
+            return Promise { [self] in
+
+                if self.bluetoothManager.state == .poweredOn {
+                    return Promise(BluetoothEvent.enabled)
+                }
+                return Promise(BluetoothEvent.disabled)
+            }
+        }
+
     }
 
 }
@@ -756,3 +761,6 @@ extension BluetoothController: CBCentralManagerDelegate {
         )
     }
 }
+
+
+
