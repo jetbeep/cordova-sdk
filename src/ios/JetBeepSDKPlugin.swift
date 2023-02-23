@@ -22,7 +22,8 @@ private extension LockerDevice {
                 "deviceName": device.shop.name,
                 "isConnectable": device.state.contains(.connectable) ? "true": "false",
                 "status": status.description,
-                "userData": device.userData?.utf8() ?? ""
+                "userData": device.userData?.utf8() ?? "",
+                "lockStatuses": device.lockers?.lockStatusesLiteral ?? []
         ]
     }
 }
@@ -136,7 +137,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
 
-        print("New state available \( central.state)")
+        Log.i("New state available \( central.state)")
         switch central.state {
         case .poweredOn:
             return notify(event: .enabled)
@@ -156,6 +157,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
         case deviceDetected
         case deviceStateChanged
+        case deviceLockStateChanged
         case deviceLost
 
         var description: String {
@@ -164,6 +166,8 @@ extension BluetoothController: CBCentralManagerDelegate {
                 return "DeviceDetected"
             case .deviceStateChanged:
                 return "DeviceStateChanged"
+            case .deviceLockStateChanged:
+                return "DeviceLockStateChanged"
             case .deviceLost:
                 return "DeviceLost"
             }
@@ -397,6 +401,12 @@ extension BluetoothController: CBCentralManagerDelegate {
                 pluginResult = CDVPluginResult(
                     status: .ok,
                     messageAs: device.json(for: .deviceStateChanged)
+                )
+            case .onLockerDeviceLockStateChanged(let device):
+                Log.i("onLockerDeviceLockStateChanged \(device)")
+                pluginResult = CDVPluginResult(
+                    status: .ok,
+                    messageAs: device.json(for: .deviceLockStateChanged)
                 )
             case .onLockerDeviceLost(let device):
                 Log.i("onLockerDeviceLost \(device)")
@@ -761,6 +771,3 @@ extension BluetoothController: CBCentralManagerDelegate {
         )
     }
 }
-
-
-

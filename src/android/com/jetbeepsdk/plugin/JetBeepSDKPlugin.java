@@ -11,10 +11,12 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.jetbeep.JetBeepRegistrationType;
 import com.jetbeep.JetBeepSDK;
 import com.jetbeep.OfflineConfig;
+import com.jetbeep.background.LockStatus;
 import com.jetbeep.background.UserData;
 import com.jetbeep.background.scanner.BleScanner;
 import com.jetbeep.connection.locker.DeviceStatusCallback;
@@ -61,6 +63,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         DeviceDetected,
         DeviceStateChanged,
         DeviceLost,
+        DeviceLockStateChanged,
         None
     }
 
@@ -152,6 +155,12 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private final DeviceStatusCallback lockersListener = new DeviceStatusCallback() {
+
+        @Override
+        public void onLockerDeviceLockStateChanged(LockerDevice lockerDevice) {
+            log("onLockerDeviceLockStateChanged = " + lockerDevice);
+            sendLockerDeviceEvent(lockerDevice, DeviceStatus.DeviceLockStateChanged);
+        }
 
         @Override
         public void onLockerDeviceStatusChanged(List<LockerDevice> list) {
@@ -383,7 +392,9 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             "deviceId": String,
             "deviceName": String,
             "isConnectable": String, //"true", "false"
-            "status": String, // "DeviceDetected", "DeviceStateChanged", "DeviceLost"
+            "status": String, // "DeviceDetected", "DeviceStateChanged", "DeviceLost",
+            "userData": String,
+            "lockStatuses": String[]
         }
         */
     private JSONObject lockerDeviceToJson(LockerDevice lockerDevice, DeviceStatus status) {
@@ -396,8 +407,23 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             if (status != DeviceStatus.None) {
                 result.put("status", status.toString());
             }
+            // add user data
             UserData userData = lockerDevice.getDevice().getUserData();
             result.put("userData", userData != null ? userData.utf8() : "");
+
+            // add lock statuses
+            List<LockStatus> listOfLockStatuses = lockerDevice.getDevice().getLockStatus();
+            JSONArray lockStatuses = new JSONArray();
+//              StringBuilder stringBuilder = new StringBuilder();
+            if (listOfLockStatuses != null) {
+                for (int i = 0; i < listOfLockStatuses.size(); i++) {
+                    lockStatuses.put(listOfLockStatuses.get(i).name());
+//                      stringBuilder.append(listOfLockStatuses.get(i).name().substring(0, 1));
+//                      stringBuilder.append(",");
+                }
+//                  Toast.makeText(cordova.getContext(), stringBuilder.toString(), Toast.LENGTH_LONG).show();
+            }
+            result.put("lockStatuses", lockStatuses);
         } catch (JSONException e) {
             e.printStackTrace();
         }
