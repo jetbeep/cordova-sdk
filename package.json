@@ -1,6 +1,6 @@
 {
   "name": "com-jetbeep-plugins-sdk",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "description": "Cordova plugin for Jetbeep SDK solution.",
   "cordova": {
     "id": "com-jetbeep-plugins-sdk",
