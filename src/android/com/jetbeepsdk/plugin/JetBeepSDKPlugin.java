@@ -11,7 +11,6 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.jetbeep.JetBeepRegistrationType;
 import com.jetbeep.JetBeepSDK;
@@ -309,6 +308,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void subscribeToLocations(CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         log("subscribeToLocations");
 
         JetBeepSDK.INSTANCE.getLocations().subscribe(locationCallbacks);
@@ -323,6 +324,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void unsubscribeFromLocations(CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         log("unsubscribeFromLocations");
         JetBeepSDK.INSTANCE.getLocations().unsubscribe(locationCallbacks);
 
@@ -344,6 +347,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
      * }]
      */
     private void getEnteredShops(CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         runInUiThread(() -> {
             try {
                 List<Shop> shops = JetBeepSDK.INSTANCE.getLocations().getEnteredShops();
@@ -360,6 +365,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void getNearbyDevices(CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         runInUiThread(() -> {
             try {
                 List<LockerDevice> devices =
@@ -591,6 +598,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void searchDevices(String msg, CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         if (msg == null || msg.length() == 0) {
             callbackContext.error("Empty message!");
             log("searchDevices error: Empty message!");
@@ -644,6 +653,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void stopSearching(String msg, CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         runInUiThread(() -> {
             if (lockers != null) {
                 lockers.stopSearch();
@@ -668,6 +679,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void applyToken(String msg, CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         if (msg == null || msg.length() == 0) {
             callbackContext.error("Empty message!");
         } else {
@@ -718,6 +731,14 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         }
     }
 
+    private boolean isSdkInitialized(CallbackContext callbackContext) {
+        if (!JetBeepSDK.INSTANCE.isInitialized()) {
+            callbackContext.error("Sdk not initialized");
+            return false;
+        }
+        return true;
+    }
+
     private void runInUiThread(Runnable runnable) {
         cordova.getActivity().runOnUiThread(runnable);
     }
@@ -760,6 +781,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void subscribeLogEvents(CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         loggerCallBack = callbackContext;
         JBLog logger = JetBeepSDK.INSTANCE.getLogger();
         logger.setRemoteLogging(true);
@@ -767,6 +790,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void unsubscribeLogEvents(CallbackContext callbackContext) {
+        if (!isSdkInitialized(callbackContext)) return;
+
         loggerCallBack = null;
         JetBeepSDK.INSTANCE.getLogger().unsubscribe(jetbeepLoggerListener);
         callbackContext.success();
