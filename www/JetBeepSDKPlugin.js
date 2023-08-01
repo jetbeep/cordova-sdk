@@ -71,3 +71,15 @@ exports.subscribeLogEvents = function(arg0, success, error) {
 exports.unsubscribeLogEvents = function(arg0, success, error) {
     exec(success, error, 'JetBeepSDKPlugin', 'unsubscribeLogEvents', [arg0]);
 };
+
+exports.gpsState = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'gpsState', [arg0]);
+};
+
+exports.subscribeGpsEvents = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'subscribeGpsEvents', [arg0]);
+};
+
+exports.unsubscribeGpsEvents = function(arg0, success, error) {
+    exec(success, error, 'JetBeepSDKPlugin', 'unsubscribeGpsEvents', [arg0]);
+};

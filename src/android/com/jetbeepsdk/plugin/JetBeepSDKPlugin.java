@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.Build;
 import android.util.Log;
 
@@ -42,6 +43,7 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import kotlin.coroutines.Continuation;
 import kotlin.coroutines.CoroutineContext;
 import kotlinx.coroutines.GlobalScope;
@@ -56,7 +58,10 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     private CallbackContext bluetoothStateCallback = null;
     private CallbackContext loggerCallBack = null;
 
+    private CallbackContext gpsCallback = null;
+
     private IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+    private IntentFilter gpsFilter = new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION);
 
     private enum DeviceStatus {
         DeviceDetected,
@@ -147,6 +152,18 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             }
             case "unsubscribeLogEvents": {
                 unsubscribeLogEvents(callbackContext);
+                return true;
+            }
+            case "gpsState": {
+                gpsState(callbackContext);
+                return true;
+            }
+            case "subscribeGpsEvents": {
+                subscribeGpsEvents(callbackContext);
+                return true;
+            }
+            case "unsubscribeGpsEvents": {
+                unsubscribeGpsEvents(callbackContext);
                 return true;
             }
         }
@@ -302,8 +319,13 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     private void unsubscribeBluetoothEvents(CallbackContext callbackContext) {
         runInUiThread(() -> {
             bluetoothStateCallback = null;
-            cordova.getActivity().unregisterReceiver(bluetoothStateChangeReceiver);
-            callbackContext.success();
+            try {
+                cordova.getActivity().unregisterReceiver(bluetoothStateChangeReceiver);
+                callbackContext.success();
+            } catch (Exception e) {
+                e.printStackTrace();
+                callbackContext.error(e.getMessage());
+            }
         });
     }
 
@@ -428,7 +450,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 //                      stringBuilder.append(listOfLockStatuses.get(i).name().substring(0, 1));
 //                      stringBuilder.append(",");
                 }
-//                  Toast.makeText(cordova.getContext(), stringBuilder.toString(), Toast.LENGTH_LONG).show();
+//                  Toast.makeText(cordova.getContext(), stringBuilder.toString(), Toast
+//                  .LENGTH_LONG).show();
             }
             result.put("lockStatuses", lockStatuses);
         } catch (JSONException e) {
@@ -451,8 +474,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
     private void isPermissionGranted(CallbackContext callbackContext) {
         boolean bt = isBluetoothPermissionsGranted(cordova.getContext());
-        boolean location =
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && bt || isLocationPermissionsGranted(cordova.getContext());
+        boolean location = isLocationPermissionsGranted(cordova.getContext());
 
         log("isPermissionGranted, bt = " + bt + ", location = " + location);
 
@@ -797,9 +819,41 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         callbackContext.success();
     }
 
+    private void gpsState(CallbackContext callbackContext) {
+        try {
+            sendGpsState(callbackContext, false, isGpsEnabled());
+        } catch (Exception e) {
+            e.printStackTrace();
+            callbackContext.error(e.getMessage());
+        }
+    }
+
+    private void subscribeGpsEvents(CallbackContext callbackContext) {
+        runInUiThread(() -> {
+            gpsCallback = callbackContext;
+            cordova.getActivity().registerReceiver(gpsStateChangeReceiver, gpsFilter);
+        });
+    }
+
+    private void unsubscribeGpsEvents(CallbackContext callbackContext) {
+        runInUiThread(() -> {
+            gpsCallback = null;
+            try {
+                cordova.getActivity().unregisterReceiver(gpsStateChangeReceiver);
+                gpsStateChangeReceiver.lastState = null;
+                callbackContext.success();
+            } catch (Exception e) {
+                e.printStackTrace();
+                callbackContext.error(e.getMessage());
+            }
+        });
+    }
+
     private void requestPermissionsImpl() {
         String[] permissions;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        int androidVersion = Build.VERSION.SDK_INT;
+
+        if (androidVersion >= Build.VERSION_CODES.S) { // android 12+
             permissions = new String[]{
                     Manifest.permission.BLUETOOTH_SCAN,
                     Manifest.permission.BLUETOOTH_CONNECT,
@@ -807,15 +861,23 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                     Manifest.permission.ACCESS_FINE_LOCATION
             };
         } else {
-            permissions = new String[]{
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-            };
+            if (androidVersion <= Build.VERSION_CODES.P) { // android 9
+                permissions = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION};
+            } else { // android 10..11
+                permissions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
+            }
         }
+
         ActivityCompat.requestPermissions(cordova.getActivity(), permissions, 345);
     }
 
-    private BroadcastReceiver bluetoothStateChangeReceiver = new BroadcastReceiver() {
+    private boolean isGpsEnabled() {
+        LocationManager locationManager = ContextCompat.getSystemService(cordova.getContext(),
+                LocationManager.class);
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    private final BroadcastReceiver bluetoothStateChangeReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
                 int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
@@ -852,5 +914,47 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
             e.printStackTrace();
         }
         return result;
+    }
+
+    private final GpsStateChangeReceiver gpsStateChangeReceiver = new GpsStateChangeReceiver();
+
+    private void sendGpsState(CallbackContext callbackContext, boolean setKeepCallback,
+                              boolean gpsState) {
+        log("isGpsEnabled = " + gpsState);
+        if (callbackContext != null) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK,
+                    gpsStateToJson(gpsState));
+            if (setKeepCallback) {
+                result.setKeepCallback(true);
+            }
+            callbackContext.sendPluginResult(result);
+        }
+    }
+
+    private JSONObject gpsStateToJson(boolean gpsState) {
+        JSONObject result = new JSONObject();
+        try {
+            String state = gpsState ? "enabled" : "disabled";
+            result.put("isGpsEnabled", state);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    private class GpsStateChangeReceiver extends BroadcastReceiver {
+
+        private Boolean lastState = null;
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (LocationManager.PROVIDERS_CHANGED_ACTION.equals(intent.getAction())) {
+                boolean isGps = isGpsEnabled();
+                if (lastState == null || lastState != isGps) {
+                    lastState = isGps;
+                    sendGpsState(gpsCallback, true, isGpsEnabled());
+                }
+            }
+        }
     }
 }
