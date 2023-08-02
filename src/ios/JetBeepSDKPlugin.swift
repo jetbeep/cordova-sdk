@@ -3,6 +3,7 @@ import CoreBluetooth
 import Foundation
 import Promises
 
+
 private extension Device.ConnectionState {
     var description: String {
         switch self {
@@ -765,6 +766,53 @@ extension BluetoothController: CBCentralManagerDelegate {
         Log.logCompletion = nil
 
         pluginResult?.setKeepCallbackAs(false)
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: command.callbackId
+        )
+    }
+
+    @objc(gpsState:)
+    func gpsState(command: CDVInvokedUrlCommand) {
+        let dictionary: [String: Any] = ["isGpsEnabled": "enabled"]
+
+        let pluginResult = CDVPluginResult(
+            status: .ok,
+            messageAs: dictionary.jsonString
+        )
+
+        Log.d("GPS state action is fired")
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: command.callbackId
+        )
+    }
+
+    @objc(subscribeGpsEvents:)
+    func subscribeGpsEvents(command: CDVInvokedUrlCommand) {
+        let dictionary: [String: Any] = ["isGpsEnabled": "enabled"]
+
+        let pluginResult = CDVPluginResult(
+            status: .ok,
+            messageAs: dictionary.jsonString
+        )
+
+        Log.d("Subscribe GPS events state action is fired")
+        self.commandDelegate!.send(
+            pluginResult,
+            callbackId: command.callbackId
+        )
+    }
+
+
+    @objc(unsubscribeGpsEvents:)
+    func unsubscribeGpsEvents(command: CDVInvokedUrlCommand) {
+
+        let pluginResult = CDVPluginResult(
+            status: .ok
+        )
+
+        Log.d("Subscribe GPS events state action is fired")
         self.commandDelegate!.send(
             pluginResult,
             callbackId: command.callbackId
