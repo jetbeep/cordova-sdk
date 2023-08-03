@@ -778,7 +778,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
         let pluginResult = CDVPluginResult(
             status: .ok,
-            messageAs: dictionary.jsonString
+            messageAs: dictionary
         )
 
         Log.d("GPS state action is fired")
@@ -794,7 +794,7 @@ extension BluetoothController: CBCentralManagerDelegate {
 
         let pluginResult = CDVPluginResult(
             status: .ok,
-            messageAs: dictionary.jsonString
+            messageAs: dictionary
         )
 
         Log.d("Subscribe GPS events state action is fired")
@@ -803,7 +803,6 @@ extension BluetoothController: CBCentralManagerDelegate {
             callbackId: command.callbackId
         )
     }
-
 
     @objc(unsubscribeGpsEvents:)
     func unsubscribeGpsEvents(command: CDVInvokedUrlCommand) {
