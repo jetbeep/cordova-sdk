@@ -781,7 +781,7 @@ extension BluetoothController: CBCentralManagerDelegate {
             messageAs: dictionary
         )
 
-        Log.d("GPS state action is fired")
+        Log.d("GPS state action is fired \(dictionary.jsonString)")
         self.commandDelegate!.send(
             pluginResult,
             callbackId: command.callbackId
@@ -797,7 +797,7 @@ extension BluetoothController: CBCentralManagerDelegate {
             messageAs: dictionary
         )
 
-        Log.d("Subscribe GPS events state action is fired")
+        Log.d("Subscribe GPS events state action is fired \(dictionary.jsonString)")
         self.commandDelegate!.send(
             pluginResult,
             callbackId: command.callbackId
