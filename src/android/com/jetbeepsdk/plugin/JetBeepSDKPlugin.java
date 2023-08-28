@@ -63,6 +63,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     private IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
     private IntentFilter gpsFilter = new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION);
 
+    private JBLog.Logger L = null;
+
     private enum DeviceStatus {
         DeviceDetected,
         DeviceStateChanged,
@@ -305,6 +307,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                 BluetoothAdapter adapter = bluetoothManager.getAdapter();
                 result = adapter != null && adapter.isEnabled();
             }
+            log("Bluetooth state: " + result);
             sendBluetoothState(callbackContext, false, result);
         });
     }
@@ -564,6 +567,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                             JetBeepRegistrationType.ANONYMOUS, false);
                     sdk.getRepository().trySync();
 
+                    L = sdk.getLogger(TAG);
+
                     callbackContext.success("SDK initialized successfully");
                     log("Sdk was initialized");
                 });
@@ -597,6 +602,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                     try {
                         OfflineConfig config = OfflineConfig.Companion.fromJson(jsonConfig);
                         sdk.init(app, serviceUUID, config);
+                        L = sdk.getLogger(TAG);
 //                        sdk.getLogger().setRemoteLogging(true);
                         sdk.getRepository().trySync();
                     } catch (Exception e) {
@@ -766,7 +772,11 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void log(String message) {
-        Log.d(TAG, message);
+        if (L != null) {
+            L.d(message);
+        } else {
+            Log.d(TAG, message);
+        }
     }
 
     private boolean isLocationPermissionsGranted(Context context) {
