@@ -60,10 +60,14 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
     private CallbackContext gpsCallback = null;
 
+    private CallbackContext requestPermissionCallback = null;
+
     private IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
     private IntentFilter gpsFilter = new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION);
 
     private JBLog.Logger L = null;
+
+    private Handler handler = new Handler(Looper.myLooper());
 
     private enum DeviceStatus {
         DeviceDetected,
@@ -495,6 +499,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
     private void requestPermissions(CallbackContext callbackContext) {
         log("requestPermissions");
+        requestPermissionCallback = callbackContext;
         requestPermissionsImpl();
     }
 
@@ -745,6 +750,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
     }
 
     private void startForegroundScanner() {
+        handler.removeCallbacksAndMessages(null);
         runInUiThread(() -> {
             BleScanner scanner = JetBeepSDK.INSTANCE.getBleScanner();
             if (!scanner.isForegroundScannerStarted()) {
@@ -755,7 +761,8 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
 
     private void stopForegroundScanner() {
         if (devicesCallback == null && jsLocationsCallback == null) {
-            runInUiThread(() -> JetBeepSDK.INSTANCE.getBleScanner().stopForegroundScanner());
+            handler.postDelayed(() -> JetBeepSDK.INSTANCE.getBleScanner().stopForegroundScanner()
+                    , 30 * 1000L);
         }
     }
 
@@ -879,6 +886,15 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
         }
 
         ActivityCompat.requestPermissions(cordova.getActivity(), permissions, 345);
+    }
+
+    public void onResume(boolean multitasking) {
+        super.onResume(multitasking);
+        log("onResume");
+        if (requestPermissionCallback != null) {
+            isPermissionGranted(requestPermissionCallback);
+            requestPermissionCallback = null;
+        }
     }
 
     private boolean isGpsEnabled() {
