@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
+import android.os.Handler;
 import android.util.Log;
 
 import com.jetbeep.JetBeepRegistrationType;
