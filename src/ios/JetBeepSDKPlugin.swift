@@ -741,15 +741,11 @@ extension BluetoothController: CBCentralManagerDelegate {
 
         Log.d("Subscribe Log Events")
 
-        var pluginResult = CDVPluginResult(
-            status: .ok
-        )
-
-        Log.logCompletion = { value in
-            pluginResult = CDVPluginResult(status: .ok,
+        Log.logCompletion = {[weak self] value in
+           let pluginResult = CDVPluginResult(status: .ok,
                                            messageAs: value)
             pluginResult?.setKeepCallbackAs(true)
-            self.commandDelegate!.send(
+            self?.commandDelegate?.send(
                 pluginResult,
                 callbackId: command.callbackId
             )
