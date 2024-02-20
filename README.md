@@ -18,9 +18,10 @@ After adding plugin into your project and installing relative Cocoapods
 
 1. Get in at `jetbeepCordovaDemoApp` folder at your command line.
 2. Add Jetbeep plugin `cordova plugin add com-jetbeep-plugins-sdk`
-3. Add iOS platform `cordova platform add ios` if you don't have it.
-4. Go at `platforms\ios`
-5. Open `Podfile` and add in the end of file:
+3. `cordova plugin add cordova-plugin-add-swift-support`
+4. Add iOS platform `cordova platform add ios` if you don't have it.
+5. Go at `platforms\ios`
+6. Open `Podfile` and add in the end of file:
 
    ```ruby
    post_install do |installer|
@@ -32,8 +33,8 @@ After adding plugin into your project and installing relative Cocoapods
    end
    ```
 
-6. **Save changes**
-7. Call `pod update`
-8. Don't for get to call `pod update` when you play with Cocoapods in future.
+7. **Save changes**
+8. Call `pod update`
+9. Don't for get to call `pod update` when you play with Cocoapods in future.
 
 _Now you are ready to go!_
