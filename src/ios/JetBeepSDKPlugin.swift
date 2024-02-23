@@ -341,7 +341,7 @@ extension BluetoothController: CBCentralManagerDelegate {
         LockersController.shared.apply(token).then { tokenResult in
             pluginResult = CDVPluginResult(
                 status: .ok,
-                messageAsArrayBuffer: tokenResult.result)
+                messageAs: tokenResult.result.base64EncodedString())
 
             Log.d("Get token result: success!")
 

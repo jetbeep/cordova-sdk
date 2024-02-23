@@ -740,7 +740,7 @@ public class JetBeepSDKPlugin extends CordovaPlugin {
                                     }
                                 });
                         log("Apply result: " + result);
-                        callbackContext.success();
+                        callbackContext.success(result.getResult());
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
