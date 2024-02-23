@@ -13,7 +13,20 @@
   "author": "Apache Cordova Team",
   "license": "Apache-2.0",
   "cordova": {
-    "plugins": {},
-    "platforms": []
+    "plugins": {
+      "com-jetbeep-plugins-sdk": {},
+      "cordova-plugin-add-swift-support": {}
+    },
+    "platforms": [
+      "ios"
+    ]
+  },
+  "devDependencies": {
+    "com-jetbeep-plugins-sdk": "^0.0.48",
+    "cordova-ios": "^7.0.1",
+    "cordova-plugin-add-swift-support": "^2.0.2"
+  },
+  "dependencies": {
+    "jetbeep-token-parser": "file:../../token-parser-ts"
   }
 }

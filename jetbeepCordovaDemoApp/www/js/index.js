@@ -32,6 +32,8 @@ document.getElementById("getNearbyDevicesButton").addEventListener("click", getN
 document.getElementById("getEnteredShopsButton").addEventListener("click", getEnteredShops);
 document.getElementById("subscribeToLocationsButton").addEventListener("click", subscribeToLocations);
 document.getElementById("unsubscribeFromLocationsButton").addEventListener("click", unsubscribeFromLocations);
+document.getElementById("subscribeLogEventsButton").addEventListener("click", subscribeLogEvents);
+document.getElementById("unsubscribeLogEventsButton").addEventListener("click", unsubscribeLogEvents);
 
 
 document.getElementById("initSDKButton").addEventListener("click", initSDK);
@@ -39,10 +41,6 @@ document.getElementById("initOfflineSDKButton").addEventListener("click", initOf
 document.getElementById("tokenButton").addEventListener("click", searchDevices);
 document.getElementById("applyTokenButton").addEventListener("click", applyToken);
 document.getElementById("stopSearchButton").addEventListener("click", stopSearching);
-
-document.getElementById('appNameKey').value = 'gls-app';
-document.getElementById('appToken').value = '4db96549-ea58-4cc1-bb5c-4ee9de416585';
-document.getElementById('serviceUUID').value = '17a7';
 
 
 // var cordova = require('cordova');
@@ -75,7 +73,6 @@ function onDeviceReady() {
 
 function isPermissionGranted() {
     // Check for permissions
-
 
    logger('isPermissionGranted function call');
    jetbeepsdkplugin
@@ -252,8 +249,15 @@ function applyToken() {
     let tokenHex = document.getElementById('tokenHex').value
     jetbeepsdkplugin.applyToken(tokenHex,
     function(success) {
-        logger('applyToken: success');
+        logger('applyToken: success 11');
         logger(success)
+        logger('array --->>>>: ');
+        // Access ArrayBuffer from success.message
+        var arrayBuffer = success.message;
+        logger('array buffer: start');
+        // Now you can work with the ArrayBuffer as needed
+        logger(arrayBuffer);
+        logger('array buffer: finish');
     },
     function(error) {
         logger('applyToken: error');
@@ -311,6 +315,33 @@ function unsubscribeBluetoothEvents() {
     },
     function(error) {
         logger('unsubscribeBluetoothEvents: error');
+        logger(error)
+    });
+}
+
+function subscribeLogEvents() {
+    logger('subscribeLogEvents');
+
+    jetbeepsdkplugin.subscribeLogEvents("",
+    function(success) {
+        logger(success)
+    },
+    function(error) {
+        logger(error)
+    });
+}
+
+
+function unsubscribeLogEvents() {
+    logger('unsubscribeLogEvents');
+
+    jetbeepsdkplugin.unsubscribeLogEvents("",
+    function(success) {
+        logger('unsubscribeLogEvents:');
+        logger(success)
+    },
+    function(error) {
+        logger('unsubscribeLogEvents: error');
         logger(error)
     });
 }
