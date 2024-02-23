@@ -1,26 +1,28 @@
 # Welcome to Jetbeep Corodova plugin
 
-Here you can find Android and iOS Cordova plugin. If you want native SDK's you can find them at **Android** [link](https://github.com/jetbeep/android-sdk) and **iOS** [link](https://github.com/jetbeep/ios-sdk).
+Here you can find Android and iOS Cordova plugins. If you want native SDK you can find it at **Android** [link](https://github.com/jetbeep/android-sdk) and **iOS** [link](https://github.com/jetbeep/ios-sdk).
 
 Install process using **npm**:
 
-Get in into your terminal and call at your project folder `cordova plugin add com-jetbeep-plugins-sdk`.
+Get in into your terminal and call your project folder `cordova plugin add com-jetbeep-plugins-sdk`.
 
 ## Android
 
-1. Get in at `jetbeepCordovaDemoApp` folder at your command line.
+1. Get in the `jetbeepCordovaDemoApp` folder at your command line.
 2. Add Jetbeep plugin `cordova plugin add com-jetbeep-plugins-sdk`
 3. Add Android platform `cordova platform add android` if you don't have it.
 
 ## iOS integration
 
-After adding plugin into your project and installing relative Cocoapods
+After adding a plugin to your project and installing relative Cocoapods
 
-1. Get in at `jetbeepCordovaDemoApp` folder at your command line.
+1. Get in the `jetbeepCordovaDemoApp` folder at your command line.
 2. Add Jetbeep plugin `cordova plugin add com-jetbeep-plugins-sdk`
-3. Add iOS platform `cordova platform add ios` if you don't have it.
-4. Go at `platforms\ios`
-5. Open `Podfile` and add in the end of file:
+3. `cordova plugin add cordova-plugin-add-swift-support`
+4. If you don't have the iOS platform `cordova platform add ios`.
+5. Go to `platforms\ios`
+7. Set to `platform :ios, '13.0'`
+8. Open `Podfile` and add at the end of the file:
 
    ```ruby
    post_install do |installer|
@@ -31,9 +33,9 @@ After adding plugin into your project and installing relative Cocoapods
      end
    end
    ```
-
-6. **Save changes**
-7. Call `pod update`
-8. Don't for get to call `pod update` when you play with Cocoapods in future.
-
+9. **Save changes**
+10. Call `pod update`
+11. Don't forget to call `pod update` when you play with Cocoapods in the future.
+12. **Open your project and bump the target version to ios 13
+    
 _Now you are ready to go!_
