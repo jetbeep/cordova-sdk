@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "com-jetbeep-plugins-sdk": "^0.0.48",
-    "cordova-ios": "^7.0.1",
+    "cordova-ios": "^7.1.1",
     "cordova-plugin-add-swift-support": "^2.0.2"
   },
   "dependencies": {
